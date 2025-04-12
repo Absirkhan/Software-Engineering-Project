@@ -3,9 +3,29 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 
 export default function LoginPage() {
     return (
-        <div className="d-flex justify-content-center align-items-center vh-100 bg-light">
-            <div className="card p-4 shadow-sm" style={{ maxWidth: '400px', width: '100%' }}>
-                <h1 className="text-center mb-4">Welcome Back!</h1>
+        <div
+            className="d-flex justify-content-center align-items-center vh-100"
+            style={{
+                background: 'linear-gradient(135deg, #e6f0ff, #f0e6ff)',
+                fontFamily: "'Poppins', sans-serif",
+            }}
+        >
+            <div
+                className="card p-4 shadow-sm"
+                style={{
+                    maxWidth: '400px',
+                    width: '100%',
+                    borderRadius: '10px',
+                    border: 'none',
+                    backgroundColor: '#ffffff',
+                }}
+            >
+                <h1
+                    className="text-center mb-4"
+                    style={{ color: '#5d5d5d' }}
+                >
+                    Welcome Back!
+                </h1>
                 <form action="/login" method="POST">
                     <div className="mb-3">
                         <Input
@@ -13,6 +33,7 @@ export default function LoginPage() {
                             placeholder="Email"
                             name="email"
                             className="form-control"
+                            style={{ borderRadius: '6px' }}
                         />
                     </div>
                     <div className="mb-3">
@@ -21,30 +42,53 @@ export default function LoginPage() {
                             placeholder="Password"
                             name="password"
                             className="form-control"
+                            style={{ borderRadius: '6px' }}
                         />
                     </div>
-                    <a href ="/auth/github">
-                        <button type="submit" className="btn btn-primary w-100 mb-3">
-                            Login
-                        </button>
-                    </a>
-
+                    <button
+                        type="submit"
+                        className="btn w-100 mb-3"
+                        style={{
+                            backgroundColor: '#a8c6fa',
+                            color: '#4a4a4a',
+                            borderRadius: '6px',
+                            border: 'none',
+                        }}
+                    >
+                        Login
+                    </button>
                 </form>
-                <div className="text-center text-muted mb-3">OR</div>
-                <a href="/auth/github">
-                <button className="btn btn-outline-secondary w-100 d-flex align-items-center justify-content-center">
-                    <img
-                        src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
-                        alt="GitHub Logo"
-                        className="me-2"
-                        style={{ width: '20px', height: '20px' }}
-                    />
-                    Login with GitHub
-                </button>
+                <div className="d-flex align-items-center my-3">
+                    <hr className="flex-grow-1" />
+                    <span className="mx-2 text-muted small">OR</span>
+                    <hr className="flex-grow-1" />
+                </div>
+                <a href="/auth/github" className="text-decoration-none">
+                    <button
+                        className="btn w-100 d-flex align-items-center justify-content-center"
+                        style={{
+                            backgroundColor: '#e8e8e8',
+                            color: '#333333',
+                            borderRadius: '6px',
+                            border: 'none',
+                        }}
+                    >
+                        <img
+                            src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png"
+                            alt="GitHub Logo"
+                            className="me-2"
+                            style={{ width: '18px', height: '18px' }}
+                        />
+                        Login with GitHub
+                    </button>
                 </a>
                 <div className="text-center mt-3">
-                    <span className="text-muted">Don't have an account? </span>
-                    <a href="/register" className="text-primary text-decoration-none">
+                    <span className="text-muted small">Don't have an account? </span>
+                    <a
+                        href="/register"
+                        className="text-decoration-none"
+                        style={{ color: '#a8c6fa' }}
+                    >
                         Register here
                     </a>
                 </div>
