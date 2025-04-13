@@ -11,9 +11,9 @@ import {
   Settings,
   LogOut,
   Menu,
-  X
+  X,
+  Bell
 } from 'lucide-react';
-import { colors, shadows } from './colors';
 
 interface NavbarProps {
   initialRole?: 'Client' | 'Freelancer';
@@ -40,20 +40,10 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
   const [role, setRole] = useState<'Client' | 'Freelancer'>(initialRole);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isHovered, setIsHovered] = useState<string | null>(null);
-  const [isToggleHovered, setIsToggleHovered] = useState(false);
-  const [windowWidth, setWindowWidth] = useState(typeof window !== 'undefined' ? window.innerWidth : 769);
+  const [notificationCount, setNotificationCount] = useState(0);
   const router = useRouter();
   const pathname = usePathname();
   
-  useEffect(() => {
-    const handleResize = () => {
-      setWindowWidth(window.innerWidth);
-    };
-    
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const toggleRole = () => {
     if (role === 'Client') {
       router.push('/freelancer_dashboard');
@@ -67,44 +57,38 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
     setMenuOpen(!menuOpen);
   };
 
+  // Fetch notification count
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      try {
+        const response = await fetch("/get-notifications");
+        if (response.ok) {
+          const data = await response.json();
+          const unreadCount = data.filter((n: any) => !n.isRead).length;
+          setNotificationCount(unreadCount);
+        }
+      } catch (error) {
+        console.error("Error fetching notifications:", error);
+      }
+    };
+    
+    fetchNotifications();
+    
+    // Set up polling for notifications (every 30 seconds)
+    const interval = setInterval(fetchNotifications, 30000);
+    
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <>
-      <nav 
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          width: '100%',
-          alignItems: 'center',
-          padding: '1rem 2rem',
-          backgroundColor: colors.secondary,
-          color: colors.buttonText,
-          boxShadow: shadows.nav,
-          fontFamily: "'Poppins', sans-serif",
-          position: 'relative',
-          zIndex: 1000,
-        }}
-      >
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-        }}>
-          <div style={{
-            fontSize: '1.5rem',
-            fontWeight: 'bold',
-            color: colors.buttonText,
-            marginRight: '20px',
-          }}>WorkConnect</div>
+      <nav className="flex justify-between items-center w-full px-8 py-4 bg-secondary text-white shadow-nav font-sans z-10 relative">
+        <div className="flex items-center">
+          <div className="text-2xl font-bold text-white mr-5">WorkConnect</div>
           
           <button 
             onClick={toggleMenu} 
-            style={{
-              display: windowWidth <= 768 ? 'block' : 'none',
-              background: 'transparent',
-              border: 'none',
-              color: colors.buttonText,
-              cursor: 'pointer',
-              padding: '4px',
-            }}
+            className="md:hidden bg-transparent border-none text-white cursor-pointer p-1"
             aria-label="Toggle navigation menu"
           >
             {menuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -112,10 +96,7 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
         </div>
         
         {/* Desktop Navigation */}
-        <div style={{
-          display: windowWidth <= 768 ? 'none' : 'flex',
-          alignItems: 'center',
-        }}>
+        <div className="hidden md:flex items-center">
           {items.map((item) => {
             const isActive = pathname === item.href;
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];
@@ -126,28 +107,20 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
                 href={item.href}
                 onMouseEnter={() => setIsHovered(item.name)}
                 onMouseLeave={() => setIsHovered(null)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0.6rem 1.2rem',
-                  color: isActive ? colors.secondary : colors.buttonText,
-                  textDecoration: 'none',
-                  fontSize: '0.95rem',
-                  borderRadius: '8px',
-                  transition: 'all 0.3s ease',
-                  marginRight: '8px',
-                  fontWeight: isActive ? 600 : 400,
-                  backgroundColor: isActive ? colors.buttonText : isHovered === item.name ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-                }}
+                className={`
+                  flex items-center px-5 py-2 text-sm rounded-lg transition-all duration-300 mr-2
+                  ${isActive 
+                    ? 'bg-white text-secondary font-semibold' 
+                    : isHovered === item.name 
+                      ? 'bg-opacity-15 bg-white' 
+                      : 'bg-transparent'
+                  }
+                `}
               >
                 {IconComponent && (
                   <IconComponent
                     size={18}
-                    style={{
-                      color: isActive ? colors.secondary : colors.buttonText,
-                      marginRight: '8px',
-                      transition: 'color 0.3s ease'
-                    }}
+                    className={`mr-2 ${isActive ? 'text-secondary' : 'text-white'}`}
                   />
                 )}
                 {item.name}
@@ -156,25 +129,24 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
           })}
         </div>
         
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-        }}>
+        <div className="flex items-center">
+          <Link href={role === 'Client' ? "/client_dashboard/settings" : "/freelancer_dashboard/settings"} className="relative p-2 text-textLight hover:text-secondary">
+            <Bell size={20} />
+            {notificationCount > 0 && (
+              <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {notificationCount}
+              </span>
+            )}
+          </Link>
           <button 
-            onClick={toggleRole} 
-            onMouseEnter={() => setIsToggleHovered(true)}
-            onMouseLeave={() => setIsToggleHovered(false)}
-            style={{
-              padding: windowWidth <= 768 ? '0.4rem 0.8rem' : '0.6rem 1.2rem',
-              borderRadius: '8px',
-              border: `2px solid ${colors.buttonText}`,
-              backgroundColor: isToggleHovered ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
-              color: colors.buttonText,
-              fontSize: windowWidth <= 768 ? '0.9rem' : '0.95rem',
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              fontWeight: 500,
-            }}
+            onClick={toggleRole}
+            onMouseEnter={() => setIsHovered('toggle')}
+            onMouseLeave={() => setIsHovered(null)}
+            className={`
+              px-3 py-2 md:px-5 md:py-2.5 rounded-lg border-2 border-white
+              ${isHovered === 'toggle' ? 'bg-white bg-opacity-15' : 'bg-transparent'}
+              text-white text-sm md:text-base font-medium transition-all duration-300
+            `}
           >
             Switch to {role === 'Client' ? 'Freelancer' : 'Client'}
           </button>
@@ -183,18 +155,7 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
       
       {/* Mobile Navigation Menu */}
       {menuOpen && (
-        <div style={{
-          position: 'absolute',
-          top: '4.2rem',
-          left: 0,
-          right: 0,
-          backgroundColor: colors.primary,
-          boxShadow: shadows.card,
-          padding: '0.5rem',
-          zIndex: 999,
-          display: windowWidth <= 768 ? 'flex' : 'none',
-          flexDirection: 'column'
-        }}>
+        <div className="absolute top-[68px] left-0 right-0 bg-white shadow-card p-2 z-50 md:hidden flex flex-col">
           {items.map((item) => {
             const isActive = pathname === item.href;
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];
@@ -203,28 +164,19 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
               <Link 
                 key={item.name} 
                 href={item.href}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  padding: '0.75rem 1rem',
-                  color: isActive ? colors.buttonText : colors.text,
-                  textDecoration: 'none',
-                  fontSize: '1rem',
-                  borderRadius: '8px',
-                  marginBottom: '5px',
-                  transition: 'background-color 0.2s',
-                  backgroundColor: isActive ? colors.secondary : 'transparent',
-                  fontWeight: isActive ? 600 : 400,
-                }}
+                className={`
+                  flex items-center p-3 rounded-lg mb-1 transition-all duration-200
+                  ${isActive 
+                    ? 'bg-secondary text-white font-semibold' 
+                    : 'text-text hover:bg-gray-50'
+                  }
+                `}
                 onClick={() => setMenuOpen(false)}
               >
                 {IconComponent && (
                   <IconComponent
                     size={20}
-                    style={{
-                      color: isActive ? colors.buttonText : colors.secondary,
-                      marginRight: '10px'
-                    }}
+                    className={`mr-3 ${isActive ? 'text-white' : 'text-secondary'}`}
                   />
                 )}
                 {item.name}

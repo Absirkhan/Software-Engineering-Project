@@ -1,13 +1,18 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
-import { colors, shadows } from '../../Components/colors';
-import { Search, Filter, Eye } from 'lucide-react';
+import { Eye } from 'lucide-react';
+import JobFilterBar from "../../Components/JobFilterBar";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filters, setFilters] = useState<Record<string, string>>({
+    type: '',
+    location: '',
+    salary: '', // Added salary filter key
+  });
   
   const items = [
     { name: "Dashboard", icon: "home", href: "/client_dashboard" },
@@ -23,12 +28,25 @@ const JobsPage = () => {
     const fetchData = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/get-jobs");
-        if (response.ok) {
-          const jobData = await response.json();
-          setJobs(jobData);
-        } else {
-          console.error("Failed to fetch jobs:", response.statusText);
+        // First, get the current user info to filter jobs by client
+        const userResponse = await fetch("/get-user");
+        if (userResponse.ok) {
+          const userData = await userResponse.json();
+          
+          // Then fetch all jobs
+          const response = await fetch("/get-jobs");
+          if (response.ok) {
+            const allJobs = await response.json();
+            
+            // Filter jobs by current client/user
+            const clientJobs = allJobs.filter((job: any) => 
+              job.client && job.client.email === userData.email
+            );
+            
+            setJobs(clientJobs);
+          } else {
+            console.error("Failed to fetch jobs:", response.statusText);
+          }
         }
       } catch (error) {
         console.error("Error fetching jobs:", error);
@@ -36,233 +54,126 @@ const JobsPage = () => {
         setLoading(false);
       }
     };
+    
     fetchData();
   }, []);
 
-  const filteredJobs = searchTerm
-    ? jobs.filter(job => 
-        job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-        job.type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        job.location.toLowerCase().includes(searchTerm.toLowerCase())
-      )
-    : jobs;
+  const filterOptions = [
+    {
+      label: "Job Type",
+      options: ["Full-time", "Part-time", "Contract", "Temporary"],
+      filterKey: "type",
+    },
+    {
+      label: "Location",
+      options: Array.from(new Set(jobs.map(job => job.location))),
+      filterKey: "location",
+    },
+    {
+      label: "Salary",
+      options: ["Under $50K", "$50K-$100K", "$100K-$150K", "$150K+"],
+      filterKey: "salary",
+    },
+  ];
+
+  const filteredJobs = jobs.filter(job => {
+    // Search term filter
+    const matchesSearchTerm = searchTerm === '' || 
+      job.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      job.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Type filter
+    const matchesType = filters.type === '' || job.type === filters.type;
+    
+    // Location filter
+    const matchesLocation = filters.location === '' || job.location === filters.location;
+    
+    // Salary filter (requires string parsing)
+    const matchesSalary = filters.salary === '' || 
+      filters.salary === "Under $50K" && parseRangeValue(job.salaryRange) < 50000 ||
+      filters.salary === "$50K-$100K" && parseRangeValue(job.salaryRange) >= 50000 && parseRangeValue(job.salaryRange) < 100000 ||
+      filters.salary === "$100K-$150K" && parseRangeValue(job.salaryRange) >= 100000 && parseRangeValue(job.salaryRange) < 150000 ||
+      filters.salary === "$150K+" && parseRangeValue(job.salaryRange) >= 150000;
+    
+    return matchesSearchTerm && matchesType && matchesLocation && matchesSalary;
+  });
+
+  // Helper function to parse salary range
+  const parseRangeValue = (range: string): number => {
+    if (!range) return 0;
+    const match = range.match(/\$(\d+),?(\d*)k?/i);
+    if (match) {
+      return parseInt(match[1] + (match[2] || '000'));
+    }
+    return 0;
+  };
   
   return (
     <div className="flex flex-col h-screen">
       <Navbar initialRole='Client' items={items} />
       
-      <div style={{
-        flex: 1,
-        padding: '2rem',
-        backgroundColor: '#f8fafc',
-        fontFamily: "'Poppins', sans-serif"
-      }}>
-        <div style={{
-          maxWidth: '1200px',
-          margin: '0 auto'
-        }}>
-          <h1 style={{
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: colors.text,
-            marginBottom: '0.5rem'
-          }}>
+      <div className="flex-1 p-8 bg-gray-50 font-sans">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-text mb-2">
             All Jobs
           </h1>
           
-          <p style={{
-            color: colors.textLight,
-            marginBottom: '1.5rem'
-          }}>
+          <p className="text-textLight mb-6">
             Manage and track all your posted job listings
           </p>
           
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '1.5rem'
-          }}>
-            <div style={{
-              position: 'relative',
-              maxWidth: '400px',
-              width: '100%'
-            }}>
-              <input
-                type="text"
-                placeholder="Search jobs..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                style={{
-                  width: '100%',
-                  padding: '10px 16px 10px 40px',
-                  borderRadius: '8px',
-                  border: `1px solid ${colors.border}`,
-                  fontSize: '0.95rem',
-                  color: colors.text,
-                  backgroundColor: colors.primary,
-                  outline: 'none',
-                  transition: 'all 0.2s',
-                  boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)'
-                }}
-              />
-              <Search
-                size={18}
-                style={{
-                  position: 'absolute',
-                  left: '12px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  color: colors.textLight
-                }}
-              />
-            </div>
-            
-            <div>
-              <button style={{
-                backgroundColor: 'transparent',
-                color: colors.text,
-                border: `1px solid ${colors.border}`,
-                borderRadius: '8px',
-                padding: '10px 16px',
-                fontSize: '0.95rem',
-                fontWeight: 500,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <Filter size={16} />
-                Filter
-              </button>
-            </div>
-          </div>
+          <JobFilterBar 
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+            filters={filters}
+            setFilters={setFilters}
+            filterOptions={filterOptions}
+          />
           
-          <div style={{
-            backgroundColor: colors.primary,
-            borderRadius: '12px',
-            boxShadow: shadows.card,
-            overflow: 'hidden'
-          }}>
+          <div className="bg-white rounded-xl shadow-card overflow-hidden">
             {loading ? (
-              <div style={{
-                padding: '2rem',
-                textAlign: 'center',
-                color: colors.textLight
-              }}>
+              <div className="p-8 text-center text-textLight">
                 Loading jobs...
               </div>
             ) : filteredJobs.length > 0 ? (
-              <div style={{
-                overflowX: 'auto'
-              }}>
-                <table style={{
-                  width: '100%',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.95rem'
-                }}>
-                  <thead style={{
-                    backgroundColor: colors.tableHeader
-                  }}>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead className="bg-gray-50">
                     <tr>
-                      <th style={{
-                        padding: '1rem',
-                        textAlign: 'left',
-                        color: colors.text,
-                        fontWeight: 600,
-                        borderBottom: `1px solid ${colors.border}`
-                      }}>
+                      <th className="p-4 text-left font-semibold text-text border-b border-border">
                         Title
                       </th>
-                      <th style={{
-                        padding: '1rem',
-                        textAlign: 'left',
-                        color: colors.text,
-                        fontWeight: 600,
-                        borderBottom: `1px solid ${colors.border}`
-                      }}>
+                      <th className="p-4 text-left font-semibold text-text border-b border-border">
                         Type
                       </th>
-                      <th style={{
-                        padding: '1rem',
-                        textAlign: 'left',
-                        color: colors.text,
-                        fontWeight: 600,
-                        borderBottom: `1px solid ${colors.border}`
-                      }}>
+                      <th className="p-4 text-left font-semibold text-text border-b border-border">
                         Location
                       </th>
-                      <th style={{
-                        padding: '1rem',
-                        textAlign: 'left',
-                        color: colors.text,
-                        fontWeight: 600,
-                        borderBottom: `1px solid ${colors.border}`
-                      }}>
+                      <th className="p-4 text-left font-semibold text-text border-b border-border">
                         Salary
                       </th>
-                      <th style={{
-                        padding: '1rem',
-                        textAlign: 'left',
-                        color: colors.text,
-                        fontWeight: 600,
-                        borderBottom: `1px solid ${colors.border}`
-                      }}>
+                      <th className="p-4 text-left font-semibold text-text border-b border-border">
                         Actions
                       </th>
                     </tr>
                   </thead>
                   <tbody>
                     {filteredJobs.map((job, index) => (
-                      <tr key={index} style={{
-                        backgroundColor: index % 2 === 0 ? colors.tableRow : colors.tableRowAlt,
-                        transition: 'background-color 0.2s'
-                      }}>
-                        <td style={{
-                          padding: '1rem',
-                          color: colors.text,
-                          fontWeight: 500,
-                          borderBottom: `1px solid ${colors.tableBorder}`
-                        }}>
+                      <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                        <td className="p-4 font-medium text-text border-b border-border">
                           {job.title}
                         </td>
-                        <td style={{
-                          padding: '1rem',
-                          color: colors.textLight,
-                          borderBottom: `1px solid ${colors.tableBorder}`
-                        }}>
+                        <td className="p-4 text-textLight border-b border-border">
                           {job.type}
                         </td>
-                        <td style={{
-                          padding: '1rem',
-                          color: colors.textLight,
-                          borderBottom: `1px solid ${colors.tableBorder}`
-                        }}>
+                        <td className="p-4 text-textLight border-b border-border">
                           {job.location}
                         </td>
-                        <td style={{
-                          padding: '1rem',
-                          color: colors.textLight,
-                          borderBottom: `1px solid ${colors.tableBorder}`
-                        }}>
+                        <td className="p-4 text-textLight border-b border-border">
                           {job.salaryRange}
                         </td>
-                        <td style={{
-                          padding: '1rem',
-                          borderBottom: `1px solid ${colors.tableBorder}`
-                        }}>
-                          <button style={{
-                            backgroundColor: 'transparent',
-                            color: colors.secondary,
-                            border: 'none',
-                            padding: '0.5rem',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            transition: 'background-color 0.2s'
-                          }}>
+                        <td className="p-4 border-b border-border">
+                          <button className="p-2 text-secondary hover:bg-gray-100 rounded-md transition-colors">
                             <Eye size={18} />
                           </button>
                         </td>
@@ -272,18 +183,9 @@ const JobsPage = () => {
                 </table>
               </div>
             ) : (
-              <div style={{
-                padding: '2rem',
-                textAlign: 'center',
-                color: colors.textLight
-              }}>
+              <div className="p-8 text-center text-textLight">
                 No jobs found. 
-                <a href="/client_dashboard/createjob" style={{
-                  color: colors.secondary,
-                  textDecoration: 'none',
-                  marginLeft: '4px',
-                  fontWeight: 500
-                }}>
+                <a href="/client_dashboard/createjob" className="text-secondary font-medium ml-1 no-underline">
                   Create a new job posting
                 </a>
               </div>

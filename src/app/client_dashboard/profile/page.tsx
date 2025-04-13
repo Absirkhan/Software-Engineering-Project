@@ -1,248 +1,140 @@
 "use client";
 import Navbar from "../../Components/navbar";
+import ProfileForm from "../../Components/ProfileForm";
 import React, { useState, useEffect } from "react";
-import { colors, shadows } from '../../Components/colors';
+import { Camera, Building, MapPin, Globe, Mail, Phone } from 'lucide-react';
+import GitHubRepositories from '../../Components/GitHubRepositories';
 
-const ProfilePage = () => {
+const ClientProfilePage = () => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
   const items = [
     { name: "Dashboard", icon: "home", href: "/client_dashboard" },
     { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
     { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
     { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Payments", icon: "credit-card", href: "/client/payments" },
-    { name: "Settings", icon: "settings", href: "/client/settings" },
-    { name: "Logout", icon: "logout", href: "/logout" }
+    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
+    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
+    { name: "Logout", icon: "logout", href: "/auth/logout" }
   ];
-
-  const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
-  const [projects, setProjects] = useState<{ name: string; html_url: string }[]>([]);
-  const [loading, setLoading] = useState(true);
-
+  
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUser = async () => {
+      setLoading(true);
       try {
-        const emailResponse = await fetch("/get-user");
-        const emailData = await emailResponse.json();
-        setEmail(emailData.email);
-        setUsername(emailData.username);
-        setProjects(emailData.projects || []);
+        const response = await fetch("/get-user");
+        if (response.ok) {
+          const userData = await response.json();
+          setUser(userData);
+        }
       } catch (error) {
-        console.error("Error fetching data:", error);
+        console.error("Error fetching user data:", error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchData();
+    
+    fetchUser();
   }, []);
 
   return (
     <div className="flex flex-col h-screen">
       <Navbar initialRole='Client' items={items} />
       
-      <div style={{
-        flex: 1,
-        padding: '2rem',
-        backgroundColor: '#f8fafc',
-        fontFamily: "'Poppins', sans-serif"
-      }}>
-        <div style={{
-          maxWidth: '1000px',
-          margin: '0 auto'
-        }}>
-          <h1 style={{
-            fontSize: '2rem',
-            fontWeight: 'bold',
-            color: colors.text,
-            marginBottom: '1.5rem'
-          }}>
-            Your Profile
+      <div className="flex-1 p-8 bg-gray-50 font-sans">
+        <div className="max-w-7xl mx-auto">
+          <h1 className="text-3xl font-bold text-text mb-2">
+            Company Profile
           </h1>
           
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-            gap: '1.5rem'
-          }}>
-            <div style={{
-              backgroundColor: colors.primary,
-              padding: '1.5rem',
-              borderRadius: '12px',
-              boxShadow: shadows.card,
-            }}>
-              <h2 style={{
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                color: colors.text,
-                marginBottom: '1.5rem',
-                borderBottom: `1px solid ${colors.border}`,
-                paddingBottom: '0.75rem'
-              }}>
-                Account Information
-              </h2>
-              
-              {loading ? (
-                <div style={{ color: colors.textLight }}>Loading account information...</div>
-              ) : (
-                <div>
-                  <div style={{ marginBottom: '1rem' }}>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '0.875rem',
-                      color: colors.textLight,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Username
-                    </label>
-                    <p style={{
-                      fontSize: '1rem',
-                      color: colors.text,
-                      fontWeight: 500
-                    }}>
-                      {username || 'Not available'}
-                    </p>
+          <p className="text-textLight mb-6">
+            Build your company profile to attract qualified freelancers
+          </p>
+          
+          {loading ? (
+            <div className="p-8 text-center text-textLight">
+              Loading profile...
+            </div>
+          ) : (
+            <>
+              <div className="bg-white rounded-xl shadow-card p-6 mb-6">
+                <div className="flex flex-col md:flex-row gap-6 items-start">
+                  <div className="relative">
+                    <div className="h-32 w-32 bg-gray-200 rounded-xl flex items-center justify-center overflow-hidden">
+                      {user?.profile?.profilePicture ? (
+                        <img 
+                          src={user.profile.profilePicture} 
+                          alt={user.username} 
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Building size={48} className="text-gray-400" />
+                      )}
+                    </div>
+                    <button className="absolute bottom-2 right-2 p-2 bg-white rounded-full shadow-md hover:bg-gray-50 transition-colors">
+                      <Camera size={16} className="text-secondary" />
+                    </button>
                   </div>
                   
-                  <div>
-                    <label style={{
-                      display: 'block',
-                      fontSize: '0.875rem',
-                      color: colors.textLight,
-                      marginBottom: '0.25rem'
-                    }}>
-                      Email Address
-                    </label>
-                    <p style={{
-                      fontSize: '1rem',
-                      color: colors.text,
-                      fontWeight: 500
-                    }}>
-                      {email || 'Not available'}
+                  <div className="flex-1">
+                    <h2 className="text-2xl font-semibold text-text">
+                      {user?.profile?.fullName || user?.username || 'Your Company Name'}
+                    </h2>
+                    
+                    <div className="mt-3 flex flex-wrap gap-4 text-sm text-textLight">
+                      {user?.profile?.contactInfo?.location && (
+                        <div className="flex items-center">
+                          <MapPin size={16} className="mr-1" />
+                          {user.profile.contactInfo.location}
+                        </div>
+                      )}
+                      
+                      {user?.profile?.contactInfo?.website && (
+                        <div className="flex items-center">
+                          <Globe size={16} className="mr-1" />
+                          <a 
+                            href={user.profile.contactInfo.website} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="text-accent hover:underline"
+                          >
+                            {user.profile.contactInfo.website.replace(/^https?:\/\//, '')}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {user?.email && (
+                        <div className="flex items-center">
+                          <Mail size={16} className="mr-1" />
+                          <a href={`mailto:${user.email}`} className="text-accent hover:underline">
+                            {user.email}
+                          </a>
+                        </div>
+                      )}
+                      
+                      {user?.profile?.contactInfo?.phone && (
+                        <div className="flex items-center">
+                          <Phone size={16} className="mr-1" />
+                          {user.profile.contactInfo.phone}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <p className="mt-4 text-text">
+                      {user?.profile?.bio || 'Add a company description to help freelancers understand your business.'}
                     </p>
                   </div>
                 </div>
-              )}
-            </div>
-            
-            <div style={{
-              backgroundColor: colors.primary,
-              padding: '1.5rem',
-              borderRadius: '12px',
-              boxShadow: shadows.card,
-            }}>
-              <h2 style={{
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                color: colors.text,
-                marginBottom: '1.5rem',
-                borderBottom: `1px solid ${colors.border}`,
-                paddingBottom: '0.75rem'
-              }}>
-                Account Settings
-              </h2>
-              
-              <div>
-                <button style={{
-                  backgroundColor: 'transparent',
-                  color: colors.secondary,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '6px',
-                  padding: '0.6rem 1rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  marginRight: '0.75rem',
-                  transition: 'all 0.2s ease',
-                }}>
-                  Change Password
-                </button>
-                
-                <button style={{
-                  backgroundColor: 'transparent',
-                  color: colors.text,
-                  border: `1px solid ${colors.border}`,
-                  borderRadius: '6px',
-                  padding: '0.6rem 1rem',
-                  fontSize: '0.875rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease',
-                }}>
-                  Edit Profile
-                </button>
               </div>
-            </div>
-          </div>
-          
-          {projects && projects.length > 0 && (
-            <div style={{
-              backgroundColor: colors.primary,
-              padding: '1.5rem',
-              borderRadius: '12px',
-              boxShadow: shadows.card,
-              marginTop: '1.5rem',
-            }}>
-              <h2 style={{
-                fontSize: '1.25rem',
-                fontWeight: 600,
-                color: colors.text,
-                marginBottom: '1.5rem',
-                borderBottom: `1px solid ${colors.border}`,
-                paddingBottom: '0.75rem'
-              }}>
-                GitHub Projects
-              </h2>
               
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))',
-                gap: '1rem'
-              }}>
-                {projects.slice(0, 4).map((project, index) => (
-                  <a 
-                    key={index}
-                    href={project.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{
-                      padding: '1rem',
-                      borderRadius: '6px',
-                      border: `1px solid ${colors.border}`,
-                      color: colors.text,
-                      textDecoration: 'none',
-                      transition: 'all 0.2s ease'
-                    }}
-                  >
-                    <div style={{
-                      fontSize: '1rem',
-                      fontWeight: 500,
-                      marginBottom: '0.25rem'
-                    }}>
-                      {project.name}
-                    </div>
-                  </a>
-                ))}
-                
-                {projects.length > 4 && (
-                  <div style={{
-                    padding: '1rem',
-                    borderRadius: '6px',
-                    border: `1px dashed ${colors.border}`,
-                    color: colors.textLight,
-                    textAlign: 'center',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'center',
-                    alignItems: 'center'
-                  }}>
-                    <div style={{ fontWeight: 500 }}>
-                      +{projects.length - 4} more projects
-                    </div>
-                  </div>
-                )}
+              <ProfileForm />
+
+              {/* GitHub Repositories Section */}
+              <div className="mt-8">
+                <GitHubRepositories />
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
@@ -250,4 +142,4 @@ const ProfilePage = () => {
   );
 };
 
-export default ProfilePage;
+export default ClientProfilePage;

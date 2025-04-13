@@ -16,10 +16,7 @@ const CreateJobPage = () => {
   
   return (
     <div className="flex flex-col h-screen">
-      {/* Navbar */}
       <Navbar initialRole='Client' items={items} />
-      
-      {/* Main content area */}
       <div className="flex-1">
         <CreateJobForm />
       </div>

@@ -1,7 +1,6 @@
 "use client";
 import Navbar from '../Components/navbar';
 import React, { useState, useEffect } from "react";
-import { colors, shadows } from '../Components/colors';
 
 const ClientDashboard = () => {
   const items = [
@@ -43,163 +42,46 @@ const ClientDashboard = () => {
     <div className="flex flex-col h-screen">
       <Navbar initialRole='Client' items={items} />
       
-      <div 
-        style={{
-          flex: 1,
-          padding: '2rem',
-          backgroundColor: '#f8fafc',
-          fontFamily: "'Poppins', sans-serif"
-        }}
-      >
-        <div 
-          style={{
-            maxWidth: '1200px',
-            margin: '0 auto'
-          }}
-        >
-          <div 
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '2rem'
-            }}
-          >
+      <div className="flex-1 p-8 bg-gray-50 font-sans">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex justify-between items-center mb-8">
             <div>
-              <h1 
-                style={{
-                  fontSize: '2rem',
-                  fontWeight: 'bold',
-                  color: colors.text,
-                  marginBottom: '0.5rem'
-                }}
-              >
-                {greet}
-              </h1>
-              <p style={{ color: colors.textLight }}>{currentTime}</p>
+              <h1 className="text-3xl font-bold text-text mb-2">{greet}</h1>
+              <p className="text-textLight">{currentTime}</p>
             </div>
             <button 
-              style={{
-                backgroundColor: colors.secondary,
-                color: colors.buttonText,
-                border: 'none',
-                borderRadius: '8px',
-                padding: '12px 20px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                transition: 'all 0.2s ease',
-              }}
+              className="bg-secondary hover:bg-buttonHover text-white rounded-lg border-none py-3 px-5 font-semibold transition-all duration-200 flex items-center"
               onClick={() => window.location.href = '/client_dashboard/createjob'}
             >
               Post a New Job
             </button>
           </div>
           
-          <div 
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-              gap: '1.5rem',
-              marginBottom: '2rem'
-            }}
-          >
-            <div 
-              style={{
-                backgroundColor: colors.primary,
-                padding: '1.5rem',
-                borderRadius: '12px',
-                boxShadow: shadows.card,
-              }}
-            >
-              <h2 
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 600,
-                  color: colors.text,
-                  marginBottom: '1rem'
-                }}
-              >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <div className="bg-white p-6 rounded-xl shadow-card">
+              <h2 className="text-xl font-semibold text-text mb-4">
                 Recent Jobs
               </h2>
-              <p style={{ color: colors.textLight }}>You have no recent jobs.</p>
+              <p className="text-textLight">You have no recent jobs.</p>
             </div>
             
-            <div 
-              style={{
-                backgroundColor: colors.primary,
-                padding: '1.5rem',
-                borderRadius: '12px',
-                boxShadow: shadows.card,
-              }}
-            >
-              <h2 
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 600,
-                  color: colors.text,
-                  marginBottom: '1rem'
-                }}
-              >
+            <div className="bg-white p-6 rounded-xl shadow-card">
+              <h2 className="text-xl font-semibold text-text mb-4">
                 Applications
               </h2>
-              <p style={{ color: colors.textLight }}>No pending applications.</p>
+              <p className="text-textLight">No pending applications.</p>
             </div>
             
-            <div 
-              style={{
-                backgroundColor: colors.primary,
-                padding: '1.5rem',
-                borderRadius: '12px',
-                boxShadow: shadows.card,
-              }}
-            >
-              <h2 
-                style={{
-                  fontSize: '1.25rem',
-                  fontWeight: 600,
-                  color: colors.text,
-                  marginBottom: '1rem'
-                }}
-              >
+            <div className="bg-white p-6 rounded-xl shadow-card">
+              <h2 className="text-xl font-semibold text-text mb-4">
                 Account Status
               </h2>
-              <p style={{ color: colors.textLight }}>Your account is active.</p>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  marginTop: '0.75rem'
-                }}
-              >
-                <div
-                  style={{
-                    height: '8px',
-                    width: '100%',
-                    backgroundColor: '#e9ecef',
-                    borderRadius: '4px',
-                    overflow: 'hidden'
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: '85%',
-                      backgroundColor: colors.accent,
-                      borderRadius: '4px'
-                    }}
-                  ></div>
+              <p className="text-textLight">Your account is active.</p>
+              <div className="flex items-center mt-3">
+                <div className="h-2 w-full bg-gray-200 rounded overflow-hidden">
+                  <div className="h-full w-[85%] bg-accent rounded"></div>
                 </div>
-                <span
-                  style={{
-                    marginLeft: '12px',
-                    color: colors.accent,
-                    fontWeight: 500
-                  }}
-                >
-                  85%
-                </span>
+                <span className="ml-3 text-accent font-medium">85%</span>
               </div>
             </div>
           </div>
