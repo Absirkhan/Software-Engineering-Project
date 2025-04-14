@@ -1,12 +1,14 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
-import { FileText, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Clock, FileX } from 'lucide-react';
+import Link from 'next/link';
 
 const ApplicationsPage = () => {
   const [applications, setApplications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const items = [
     { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
@@ -26,9 +28,12 @@ const ApplicationsPage = () => {
         if (response.ok) {
           const data = await response.json();
           setApplications(data);
+        } else {
+          setError("Failed to fetch applications. Please try again later.");
         }
       } catch (error) {
         console.error("Error fetching applications:", error);
+        setError("An error occurred while fetching applications. Please try again later.");
       } finally {
         setLoading(false);
       }
@@ -78,117 +83,131 @@ const ApplicationsPage = () => {
       
       <div className="flex-1 p-8 bg-gray-50 font-sans">
         <div className="max-w-7xl mx-auto">
-          <h1 className="text-3xl font-bold text-text mb-2">
-            Your Applications
-          </h1>
+          <h1 className="text-3xl font-bold text-text mb-6">Your Applications</h1>
           
-          <p className="text-textLight mb-6">
-            Track the status of your job applications
-          </p>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-1">
-              <div className="bg-white rounded-xl shadow-card overflow-hidden">
-                <div className="p-4 border-b border-border">
-                  <h2 className="font-semibold text-lg text-text">
-                    Applications ({applications.length})
-                  </h2>
-                </div>
-                
-                {loading ? (
-                  <div className="p-6 text-center text-textLight">
-                    Loading applications...
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+            </div>
+          ) : applications.length === 0 ? (
+            <div className="bg-white p-6 rounded-xl shadow-card text-center">
+              <FileX size={48} className="mx-auto mb-4 text-gray-300" />
+              <h3 className="text-xl font-medium text-text mb-2">No Applications Found</h3>
+              <p className="text-textLight mb-4">You haven't applied to any jobs yet.</p>
+              <Link 
+                href="/freelancer_dashboard/searchjob"
+                className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 inline-block"
+              >
+                Browse Jobs
+              </Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="md:col-span-1">
+                <div className="bg-white rounded-xl shadow-card overflow-hidden">
+                  <div className="p-4 border-b border-border">
+                    <h2 className="font-semibold text-lg text-text">
+                      Applications ({applications.length})
+                    </h2>
                   </div>
-                ) : applications.length > 0 ? (
-                  <div className="divide-y divide-border max-h-[65vh] overflow-y-auto">
-                    {applications.map((application) => (
-                      <div 
-                        key={application.id}
-                        className={`p-4 cursor-pointer transition-all hover:bg-gray-50 ${selectedApplication && selectedApplication.id === application.id ? 'bg-gray-50' : ''}`}
-                        onClick={() => setSelectedApplication(application)}
-                      >
-                        <h3 className="font-medium text-text">{application.jobTitle}</h3>
-                        <p className="text-xs text-textLight mt-1">
-                          {application.client?.username || 'Unknown Client'}
-                        </p>
-                        <div className="flex items-center justify-between mt-2">
-                          <span className="text-xs text-textLight">
-                            {formatDate(application.submittedAt)}
-                          </span>
-                          {getStatusBadge(application.status)}
+                  
+                  {applications.length > 0 ? (
+                    <div className="divide-y divide-border max-h-[65vh] overflow-y-auto">
+                      {applications.map((application) => (
+                        <div 
+                          key={application.id}
+                          className={`p-4 cursor-pointer transition-all hover:bg-gray-50 ${selectedApplication && selectedApplication.id === application.id ? 'bg-gray-50' : ''}`}
+                          onClick={() => setSelectedApplication(application)}
+                        >
+                          <h3 className="font-medium text-text">{application.jobTitle}</h3>
+                          <p className="text-xs text-textLight mt-1">
+                            {application.client?.username || 'Unknown Client'}
+                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-textLight">
+                              {formatDate(application.submittedAt)}
+                            </span>
+                            {getStatusBadge(application.status)}
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="p-6 text-center text-textLight">
+                      You haven't applied to any jobs yet.
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="md:col-span-2">
+                {selectedApplication ? (
+                  <div className="bg-white rounded-xl shadow-card p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <div>
+                        <h2 className="text-2xl font-semibold text-text">{selectedApplication.jobTitle}</h2>
+                        <p className="text-textLight">Applied on {formatDate(selectedApplication.submittedAt)}</p>
                       </div>
-                    ))}
+                      <div>
+                        {getStatusBadge(selectedApplication.status)}
+                      </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <h3 className="text-md font-semibold text-text mb-2">Cover Letter</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-textLight whitespace-pre-line">
+                          {selectedApplication.coverLetter}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <h3 className="text-md font-semibold text-text mb-2">Resume/CV</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <p className="text-sm text-textLight whitespace-pre-line">
+                          {selectedApplication.resume}
+                        </p>
+                      </div>
+                    </div>
+                    
+                    <div className="border-t border-border pt-4 mt-4">
+                      <h3 className="text-md font-semibold text-text mb-2">Application Status</h3>
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        {selectedApplication.status === 'pending' ? (
+                          <p className="text-sm text-textLight">
+                            Your application is being reviewed by the employer. We'll notify you when there's an update.
+                          </p>
+                        ) : selectedApplication.status === 'accepted' ? (
+                          <p className="text-sm text-green-600">
+                            Congratulations! Your application has been accepted. The employer will contact you soon with further details.
+                          </p>
+                        ) : (
+                          <p className="text-sm text-red-600">
+                            Thank you for your interest, but the employer has decided to move forward with other candidates.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 ) : (
-                  <div className="p-6 text-center text-textLight">
-                    You haven't applied to any jobs yet.
+                  <div className="bg-white rounded-xl shadow-card p-6 flex flex-col items-center justify-center" style={{minHeight: '300px'}}>
+                    <div className="text-center max-w-md">
+                      <FileText size={48} className="mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-xl font-medium text-text mb-2">Application Details</h3>
+                      <p className="text-textLight">Select an application from the list to view its details.</p>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
-            
-            <div className="md:col-span-2">
-              {selectedApplication ? (
-                <div className="bg-white rounded-xl shadow-card p-6">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h2 className="text-2xl font-semibold text-text">{selectedApplication.jobTitle}</h2>
-                      <p className="text-textLight">Applied on {formatDate(selectedApplication.submittedAt)}</p>
-                    </div>
-                    <div>
-                      {getStatusBadge(selectedApplication.status)}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-md font-semibold text-text mb-2">Cover Letter</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-textLight whitespace-pre-line">
-                        {selectedApplication.coverLetter}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-6">
-                    <h3 className="text-md font-semibold text-text mb-2">Resume/CV</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      <p className="text-sm text-textLight whitespace-pre-line">
-                        {selectedApplication.resume}
-                      </p>
-                    </div>
-                  </div>
-                  
-                  <div className="border-t border-border pt-4 mt-4">
-                    <h3 className="text-md font-semibold text-text mb-2">Application Status</h3>
-                    <div className="bg-gray-50 p-4 rounded-lg">
-                      {selectedApplication.status === 'pending' ? (
-                        <p className="text-sm text-textLight">
-                          Your application is being reviewed by the employer. We'll notify you when there's an update.
-                        </p>
-                      ) : selectedApplication.status === 'accepted' ? (
-                        <p className="text-sm text-green-600">
-                          Congratulations! Your application has been accepted. The employer will contact you soon with further details.
-                        </p>
-                      ) : (
-                        <p className="text-sm text-red-600">
-                          Thank you for your interest, but the employer has decided to move forward with other candidates.
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-white rounded-xl shadow-card p-6 flex flex-col items-center justify-center" style={{minHeight: '300px'}}>
-                  <div className="text-center max-w-md">
-                    <FileText size={48} className="mx-auto mb-4 text-gray-300" />
-                    <h3 className="text-xl font-medium text-text mb-2">Application Details</h3>
-                    <p className="text-textLight">Select an application from the list to view its details.</p>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

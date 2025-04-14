@@ -130,7 +130,7 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
         </div>
         
         <div className="flex items-center">
-          <Link href={role === 'Client' ? "/client_dashboard/settings" : "/freelancer_dashboard/settings"} className="relative p-2 text-textLight hover:text-secondary">
+                    <Link href={role === 'Client' ? "/client_dashboard/settings" : "/freelancer_dashboard/settings"} className="relative p-2 text-textLight hover:text-secondary">
             <Bell size={20} />
             {notificationCount > 0 && (
               <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">

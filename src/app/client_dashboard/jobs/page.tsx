@@ -3,6 +3,7 @@ import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
 import { Eye } from 'lucide-react';
 import JobFilterBar from "../../Components/JobFilterBar";
+import Link from "next/link";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -173,9 +174,23 @@ const JobsPage = () => {
                           {job.salaryRange}
                         </td>
                         <td className="p-4 border-b border-border">
+                          <div className="flex items-center">
                           <button className="p-2 text-secondary hover:bg-gray-100 rounded-md transition-colors">
                             <Eye size={18} />
                           </button>
+                            <Link 
+                            href={`/client_dashboard/jobs/${job.id}/applications`}
+                            className="ml-6 px-4 py-2 border border-secondary text-secondary rounded-lg text-sm font-medium hover:bg-gray-50 transition-all"
+                            >
+                            View Applications
+                            </Link>
+                            <Link 
+                            href={`/client_dashboard/jobs/${job.id}`}
+                            className="ml-6 px-4 py-2 border border-secondary text-secondary rounded-lg text-sm font-medium hover:bg-gray-50 transition-all"
+                            >
+                            Edit Job
+                            </Link>
+                          </div>
                         </td>
                       </tr>
                     ))}

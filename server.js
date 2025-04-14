@@ -162,19 +162,30 @@ passport.use(
     )
 );
 
-passport.serializeUser((user, done) => done(null, user));
-passport.deserializeUser((user, done) => done(null, user));
+// Fix serialization/deserialization - this is critical for sessions to work properly
+passport.serializeUser((user, done) => {
+    done(null, user.id);
+});
+
+passport.deserializeUser((id, done) => {
+    const user = users.find(user => user.id === id);
+    done(null, user || false);
+});
 
 app.prepare().then(() => {
-    let currentUser = null;
     const server = express();
 
     server.use(
         session({
-            secret: 'secretKey', // Replace with a strong secret key
+            name: 'job_portal_session',  // Unique name for the session cookie
+            secret: 'secretKey',         // Replace with a strong secret key in production
             resave: false,
             saveUninitialized: false,
-            cookie: { maxAge: 24 * 60 * 60 * 1000 }, // 1 day
+            cookie: { 
+                maxAge: 24 * 60 * 60 * 1000,  // 1 day
+                httpOnly: true,
+                sameSite: 'lax',
+            },
         })
     );
 
@@ -185,7 +196,7 @@ app.prepare().then(() => {
 
     // Authentication middleware
     const isAuthenticated = (req, res, next) => {
-        if (currentUser) {
+        if (req.isAuthenticated()) {
             return next();
         }
         res.status(401).json({ error: 'Unauthorized' });
@@ -197,11 +208,8 @@ app.prepare().then(() => {
     server.get('/auth/github/callback', 
         passport.authenticate('github', { failureRedirect: '/login' }),
         (req, res) => {
-            // Set the current user
-            currentUser = req.user;
-            
             // Redirect based on user role
-            if (currentUser.role === 'freelancer') {
+            if (req.user.role === 'freelancer') {
                 res.redirect('/freelancer_dashboard');
             } else {
                 res.redirect('/client_dashboard');
@@ -211,26 +219,26 @@ app.prepare().then(() => {
     
     // Add an endpoint to get GitHub repositories for the profile
     server.get('/get-github-repositories', isAuthenticated, (req, res) => {
-        if (currentUser && currentUser.githubRepositories) {
+        if (req.user && req.user.githubRepositories) {
             res.json({
-                repositories: currentUser.githubRepositories,
-                username: currentUser.username
+                repositories: req.user.githubRepositories,
+                username: req.user.username
             });
         } else {
-            res.json({ repositories: [], username: currentUser?.username });
+            res.json({ repositories: [], username: req.user?.username });
         }
     });
     
     // Add ability to refresh GitHub repositories
     server.post('/refresh-github-repositories', isAuthenticated, async (req, res) => {
-        if (!currentUser || !currentUser.githubToken) {
+        if (!req.user || !req.user.githubToken) {
             return res.status(401).json({ error: 'GitHub credentials not found' });
         }
         
         try {
             const reposResponse = await axios.get('https://api.github.com/user/repos', {
                 headers: {
-                    'Authorization': `token ${currentUser.githubToken}`,
+                    'Authorization': `token ${req.user.githubToken}`,
                     'Accept': 'application/vnd.github.v3+json'
                 },
                 params: {
@@ -241,7 +249,7 @@ app.prepare().then(() => {
             
             if (reposResponse.status === 200) {
                 // Update repositories for current user
-                currentUser.githubRepositories = reposResponse.data.map(repo => ({
+                req.user.githubRepositories = reposResponse.data.map(repo => ({
                     id: repo.id,
                     name: repo.name,
                     fullName: repo.full_name,
@@ -255,15 +263,15 @@ app.prepare().then(() => {
                 }));
                 
                 // Update the user in the users array
-                const userIndex = users.findIndex(u => u.id === currentUser.id);
+                const userIndex = users.findIndex(u => u.id === req.user.id);
                 if (userIndex !== -1) {
-                    users[userIndex].githubRepositories = currentUser.githubRepositories;
+                    users[userIndex].githubRepositories = req.user.githubRepositories;
                 }
                 
                 res.json({ 
                     message: 'GitHub repositories refreshed',
-                    count: currentUser.githubRepositories.length,
-                    repositories: currentUser.githubRepositories
+                    count: req.user.githubRepositories.length,
+                    repositories: req.user.githubRepositories
                 });
             } else {
                 res.status(500).json({ error: 'Failed to fetch repositories' });
@@ -301,59 +309,87 @@ app.prepare().then(() => {
         
         const user = new User(email, username, password, role);
         users.push(user);
-        currentUser = user;
-        return res.json({ message: 'Registration successful', user });
+        
+        // Log the user in after registration
+        req.login(user, (err) => {
+            if (err) {
+                return res.status(500).json({ error: 'Login failed after registration' });
+            }
+            return res.json({ message: 'Registration successful', user });
+        });
     });
 
     // User routes
     server.get('/get-user', (req, res) => {
-        if (currentUser) {
-            res.json(currentUser);
+        if (req.isAuthenticated()) {
+            res.json(req.user);
         } else {
             res.status(401).json({ error: 'Not logged in' });
         }
     });
 
     server.post('/login', (req, res) => {
-        currentUser = users.find(user => user.email === req.body.email && user.password === req.body.password);
-        if (currentUser) {
-            res.json({ message: 'Login successful', user: currentUser });
+        const user = users.find(user => user.email === req.body.email && user.password === req.body.password);
+        if (user) {
+            // Regenerate the session before logging in to prevent session fixation
+            const oldSession = req.session;
+            req.session.regenerate((err) => {
+                if (err) {
+                    return res.status(500).json({ error: 'Login failed' });
+                }
+                
+                // Log the user in
+                req.login(user, (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Login failed' });
+                    }
+                    res.json({ message: 'Login successful', user });
+                });
+            });
         } else {
             res.status(401).json({ error: 'Invalid credentials' });
         }
     });
 
     server.get('/auth/logout', (req, res) => {
-        currentUser = null;
         req.logout((err) => {
             if (err) {
                 console.error('Logout Error', err);
+                return res.status(500).json({ error: 'Logout failed' });
             }
-            res.json({ message: 'Logged out successfully' });
+            
+            req.session.destroy((err) => {
+                if (err) {
+                    console.error('Session destruction error', err);
+                    return res.status(500).json({ error: 'Logout failed' });
+                }
+                res.clearCookie('job_portal_session');
+                res.json({ message: 'Logged out successfully' });
+            });
         });
     });
 
     // Profile routes
     server.post('/update-profile', isAuthenticated, (req, res) => {
         const profileData = req.body;
-        if (currentUser) {
-            currentUser.profile = { ...currentUser.profile, ...profileData };
+        if (req.user) {
+            req.user.profile = { ...req.user.profile, ...profileData };
             
             // Update the user in the users array
-            const userIndex = users.findIndex(u => u.id === currentUser.id);
+            const userIndex = users.findIndex(u => u.id === req.user.id);
             if (userIndex !== -1) {
-                users[userIndex].profile = currentUser.profile;
+                users[userIndex].profile = req.user.profile;
             }
             
-            res.json({ message: 'Profile updated successfully', profile: currentUser.profile });
+            res.json({ message: 'Profile updated successfully', profile: req.user.profile });
         } else {
             res.status(401).json({ error: 'User not authenticated' });
         }
     });
 
     server.get('/get-profile', isAuthenticated, (req, res) => {
-        if (currentUser) {
-            res.json(currentUser.profile);
+        if (req.user) {
+            res.json(req.user.profile);
         } else {
             res.status(401).json({ error: 'User not authenticated' });
         }
@@ -362,7 +398,7 @@ app.prepare().then(() => {
     // Job routes
     server.post('/createjob', isAuthenticated, (req, res) => {
         console.log(req.body);
-        if (currentUser && currentUser.role === 'client') {
+        if (req.user && req.user.role === 'client') {
             const job = new Job(
                 req.body.title,
                 req.body.description,
@@ -376,9 +412,9 @@ app.prepare().then(() => {
                 req.body.applicationDeadline,
                 req.body.autoRenew,
                 {
-                    id: currentUser.id,
-                    username: currentUser.username,
-                    email: currentUser.email
+                    id: req.user.id,
+                    username: req.user.username,
+                    email: req.user.email
                 }
             );
             jobs.push(job);
@@ -403,7 +439,7 @@ app.prepare().then(() => {
 
     server.post('/update-job/:id', isAuthenticated, (req, res) => {
         const jobId = req.params.id;
-        const jobIndex = jobs.findIndex(j => j.id === jobId && j.client.id === currentUser.id);
+        const jobIndex = jobs.findIndex(j => j.id === jobId && j.client.id === req.user.id);
         
         if (jobIndex !== -1) {
             // Only update allowed fields
@@ -432,7 +468,7 @@ app.prepare().then(() => {
 
     server.delete('/delete-job/:id', isAuthenticated, (req, res) => {
         const jobId = req.params.id;
-        const jobIndex = jobs.findIndex(j => j.id === jobId && j.client.id === currentUser.id);
+        const jobIndex = jobs.findIndex(j => j.id === jobId && j.client.id === req.user.id);
         
         if (jobIndex !== -1) {
             const deletedJob = jobs.splice(jobIndex, 1)[0];
@@ -453,13 +489,13 @@ app.prepare().then(() => {
             return res.status(404).json({ error: 'Job not found' });
         }
         
-        if (currentUser.role !== 'freelancer') {
+        if (req.user.role !== 'freelancer') {
             return res.status(403).json({ error: 'Only freelancers can apply for jobs' });
         }
         
         // Check if already applied
         const existingApplication = applications.find(
-            app => app.jobId === jobId && app.freelancer.id === currentUser.id
+            app => app.jobId === jobId && app.freelancer.id === req.user.id
         );
         
         if (existingApplication) {
@@ -469,9 +505,9 @@ app.prepare().then(() => {
         const application = new JobApplication(
             jobId,
             {
-                id: currentUser.id,
-                username: currentUser.username,
-                email: currentUser.email
+                id: req.user.id,
+                username: req.user.username,
+                email: req.user.email
             },
             req.body.coverLetter,
             req.body.resume
@@ -483,7 +519,7 @@ app.prepare().then(() => {
         // Create notification for the job owner
         const notification = new Notification(
             job.client.id,
-            `New application received for "${job.title}" from ${currentUser.username}`,
+            `New application received for "${job.title}" from ${req.user.username}`,
             'job-application'
         );
         notifications.push(notification);
@@ -492,9 +528,9 @@ app.prepare().then(() => {
     });
 
     server.get('/get-applications', isAuthenticated, (req, res) => {
-        if (currentUser.role === 'client') {
+        if (req.user.role === 'client') {
             // Get all applications for jobs posted by this client
-            const clientJobs = jobs.filter(job => job.client.id === currentUser.id);
+            const clientJobs = jobs.filter(job => job.client.id === req.user.id);
             const jobIds = clientJobs.map(job => job.id);
             const jobApplications = applications.filter(app => jobIds.includes(app.jobId));
             
@@ -508,9 +544,9 @@ app.prepare().then(() => {
             });
             
             res.json(enrichedApplications);
-        } else if (currentUser.role === 'freelancer') {
+        } else if (req.user.role === 'freelancer') {
             // Get all applications submitted by this freelancer
-            const userApplications = applications.filter(app => app.freelancer.id === currentUser.id);
+            const userApplications = applications.filter(app => app.freelancer.id === req.user.id);
             
             // Add job title to each application
             const enrichedApplications = userApplications.map(app => {
@@ -532,19 +568,38 @@ app.prepare().then(() => {
         const jobId = req.params.jobId;
         const job = jobs.find(j => j.id === jobId);
         
-        if (!job || job.client.id !== currentUser.id) {
-            return res.status(403).json({ error: 'Job not found or you do not have permission to view these applications' });
+        if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
         }
         
-        const jobApplications = applications.filter(app => app.jobId === jobId);
-        res.json(jobApplications);
+        // Check if the user is the job owner
+        if (req.user.role === 'client' && job.client.id === req.user.id) {
+            const jobApplications = applications.filter(app => app.jobId === jobId);
+            
+            // Add job title to each application for easier frontend display
+            const enrichedApplications = jobApplications.map(app => {
+                return {
+                    ...app,
+                    jobTitle: job.title
+                };
+            });
+            
+            res.json(enrichedApplications);
+        } else {
+            res.status(403).json({ error: 'You do not have permission to view these applications' });
+        }
     });
 
     server.post('/update-application-status/:id', isAuthenticated, (req, res) => {
         const applicationId = req.params.id;
-        const { status } = req.body;
+        const status = req.body.status;
         
-        const applicationIndex = applications.findIndex(a => a.id === applicationId);
+        if (!['accepted', 'rejected'].includes(status)) {
+            return res.status(400).json({ error: 'Invalid status. Must be "accepted" or "rejected".' });
+        }
+        
+        const applicationIndex = applications.findIndex(app => app.id === applicationId);
+        
         if (applicationIndex === -1) {
             return res.status(404).json({ error: 'Application not found' });
         }
@@ -552,7 +607,12 @@ app.prepare().then(() => {
         const application = applications[applicationIndex];
         const job = jobs.find(j => j.id === application.jobId);
         
-        if (!job || job.client.id !== currentUser.id) {
+        if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+        
+        // Check if the user is the job owner
+        if (req.user.role !== 'client' || job.client.id !== req.user.id) {
             return res.status(403).json({ error: 'You do not have permission to update this application' });
         }
         
@@ -572,14 +632,14 @@ app.prepare().then(() => {
 
     // Notification routes
     server.get('/get-notifications', isAuthenticated, (req, res) => {
-        const userNotifications = notifications.filter(n => n.userId === currentUser.id);
+        const userNotifications = notifications.filter(n => n.userId === req.user.id);
         res.json(userNotifications);
     });
 
     server.post('/mark-notification-read/:id', isAuthenticated, (req, res) => {
         const notificationId = req.params.id;
         const notificationIndex = notifications.findIndex(
-            n => n.id === notificationId && n.userId === currentUser.id
+            n => n.id === notificationId && n.userId === req.user.id
         );
         
         if (notificationIndex !== -1) {
@@ -593,13 +653,27 @@ app.prepare().then(() => {
     server.post('/mark-all-notifications-read', isAuthenticated, (req, res) => {
         let count = 0;
         notifications.forEach((notification, index) => {
-            if (notification.userId === currentUser.id && !notification.isRead) {
+            if (notification.userId === req.user.id && !notification.isRead) {
                 notifications[index].isRead = true;
                 count++;
             }
         });
         
         res.json({ message: `${count} notifications marked as read` });
+    });
+
+    // Add debugging route
+    server.get('/debug-session', (req, res) => {
+        res.json({
+            isAuthenticated: req.isAuthenticated(),
+            sessionID: req.sessionID,
+            user: req.user ? {
+                id: req.user.id,
+                username: req.user.username, 
+                email: req.user.email,
+                role: req.user.role
+            } : null
+        });
     });
 
     // Forward all other requests to Next.js
