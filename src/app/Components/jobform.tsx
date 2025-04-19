@@ -64,31 +64,31 @@ const JobForm: React.FC = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-[90vh] bg-white font-sans">
-      <div className="max-w-3xl w-full bg-gradient-bg bg-opacity-20 rounded-xl shadow-card p-6 md:p-8 mx-4 max-h-[80vh] overflow-y-auto scrollbar-thin scrollbar-thumb-accent scrollbar-track-gray-100">
+    <div className="flex justify-center items-center py-8 bg-gray-50 font-sans">
+      <div className="max-w-3xl w-full bg-white rounded-xl shadow-card p-6 md:p-8 mx-4">
         <div className="mb-6 relative">
-          <h2 className="text-xl font-semibold text-center text-secondary mb-2">Add New Job</h2>
-          <div className="h-1 w-12 bg-accent mx-auto rounded"></div>
+          <h2 className="text-2xl font-semibold text-center text-secondary mb-2">Add New Job</h2>
+          <div className="h-1 w-20 bg-accent mx-auto rounded"></div>
         </div>
         
         {error && (
-          <div className="p-4 mb-6 text-red-800 bg-red-100 rounded-lg" role="alert">
-            <span className="mr-2">⚠️</span> {error}
+          <div className="p-4 mb-6 text-red-800 bg-red-100 border border-red-200 rounded-lg" role="alert">
+            <span className="font-medium mr-2">⚠️</span> {error}
           </div>
         )}
         
-        <form onSubmit={handleSubmit}>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label htmlFor="jobTitle" className="block text-sm font-medium text-gray-600 mb-1">
-                Job Title <span className="text-red-500">*</span>
+              <label htmlFor="jobTitle" className="block text-sm font-medium text-text mb-1">
+                Job Title <span className="text-accent">*</span>
               </label>
               <input
                 type="text"
                 id="jobTitle"
                 value={jobTitle}
                 onChange={(e) => setJobTitle(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., Senior Software Engineer"
                 required
                 disabled={isSubmitting}
@@ -96,14 +96,14 @@ const JobForm: React.FC = () => {
             </div>
             
             <div>
-              <label htmlFor="jobType" className="block text-sm font-medium text-gray-600 mb-1">
-                Job Type <span className="text-red-500">*</span>
+              <label htmlFor="jobType" className="block text-sm font-medium text-text mb-1">
+                Job Type <span className="text-accent">*</span>
               </label>
               <select
                 id="jobType"
                 value={jobType}
                 onChange={(e) => setJobType(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 required
                 disabled={isSubmitting}
               >
@@ -116,17 +116,17 @@ const JobForm: React.FC = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label htmlFor="location" className="block text-sm font-medium text-gray-600 mb-1">
-                Location <span className="text-red-500">*</span>
+              <label htmlFor="location" className="block text-sm font-medium text-text mb-1">
+                Location <span className="text-accent">*</span>
               </label>
               <input
                 type="text"
                 id="location"
                 value={location}
                 onChange={(e) => setLocation(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., Remote, New York, NY"
                 required
                 disabled={isSubmitting}
@@ -134,15 +134,15 @@ const JobForm: React.FC = () => {
             </div>
             
             <div>
-              <label htmlFor="salaryRange" className="block text-sm font-medium text-gray-600 mb-1">
-                Salary Range <span className="text-red-500">*</span>
+              <label htmlFor="salaryRange" className="block text-sm font-medium text-text mb-1">
+                Salary Range <span className="text-accent">*</span>
               </label>
               <input
                 type="text"
                 id="salaryRange"
                 value={salaryRange}
                 onChange={(e) => setSalaryRange(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., $80,000 - $120,000"
                 required
                 disabled={isSubmitting}
@@ -150,15 +150,15 @@ const JobForm: React.FC = () => {
             </div>
           </div>
           
-          <div className="mb-4">
-            <label htmlFor="jobDescription" className="block text-sm font-medium text-gray-600 mb-1">
-              Job Description <span className="text-red-500">*</span>
+          <div>
+            <label htmlFor="jobDescription" className="block text-sm font-medium text-text mb-1">
+              Job Description <span className="text-accent">*</span>
             </label>
             <textarea
               id="jobDescription"
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
+              className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
               placeholder="Describe the job role and responsibilities"
               rows={3}
               required
@@ -166,16 +166,16 @@ const JobForm: React.FC = () => {
             ></textarea>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label htmlFor="qualifications" className="block text-sm font-medium text-gray-600 mb-1">
-                Qualifications <span className="text-red-500">*</span>
+              <label htmlFor="qualifications" className="block text-sm font-medium text-text mb-1">
+                Qualifications <span className="text-accent">*</span>
               </label>
               <textarea
                 id="qualifications"
                 value={qualifications}
                 onChange={(e) => setQualifications(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
                 placeholder="Required education, certifications, etc."
                 rows={2}
                 required
@@ -184,14 +184,14 @@ const JobForm: React.FC = () => {
             </div>
             
             <div>
-              <label htmlFor="skills" className="block text-sm font-medium text-gray-600 mb-1">
-                Skills <span className="text-red-500">*</span>
+              <label htmlFor="skills" className="block text-sm font-medium text-text mb-1">
+                Skills <span className="text-accent">*</span>
               </label>
               <textarea
                 id="skills"
                 value={skills}
                 onChange={(e) => setSkills(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
                 placeholder="e.g., JavaScript, React, Node.js"
                 rows={2}
                 required
@@ -200,17 +200,17 @@ const JobForm: React.FC = () => {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <div>
-              <label htmlFor="experience" className="block text-sm font-medium text-gray-600 mb-1">
-                Experience <span className="text-red-500">*</span>
+              <label htmlFor="experience" className="block text-sm font-medium text-text mb-1">
+                Experience <span className="text-accent">*</span>
               </label>
               <input
                 type="text"
                 id="experience"
                 value={experience}
                 onChange={(e) => setExperience(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., 3+ years"
                 required
                 disabled={isSubmitting}
@@ -218,30 +218,30 @@ const JobForm: React.FC = () => {
             </div>
             
             <div>
-              <label htmlFor="applicationDeadline" className="block text-sm font-medium text-gray-600 mb-1">
-                Application Deadline <span className="text-red-500">*</span>
+              <label htmlFor="applicationDeadline" className="block text-sm font-medium text-text mb-1">
+                Application Deadline <span className="text-accent">*</span>
               </label>
               <input
                 type="date"
                 id="applicationDeadline"
                 value={applicationDeadline}
                 onChange={(e) => setApplicationDeadline(e.target.value)}
-                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 required
                 disabled={isSubmitting}
               />
             </div>
           </div>
           
-          <div className="mb-4">
-            <label htmlFor="benefits" className="block text-sm font-medium text-gray-600 mb-1">
-              Benefits <span className="text-red-500">*</span>
+          <div>
+            <label htmlFor="benefits" className="block text-sm font-medium text-text mb-1">
+              Benefits <span className="text-accent">*</span>
             </label>
             <textarea
               id="benefits"
               value={benefits}
               onChange={(e) => setBenefits(e.target.value)}
-              className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
+              className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
               placeholder="e.g., Health insurance, 401k, remote work"
               rows={2}
               required
@@ -249,7 +249,7 @@ const JobForm: React.FC = () => {
             ></textarea>
           </div>
           
-          <div className="p-3 bg-gray-50 rounded-lg mb-6 flex items-center">
+          <div className="p-4 bg-gray-50 rounded-lg border border-border flex items-center">
             <input
               type="checkbox"
               id="autoRenew"
@@ -258,24 +258,24 @@ const JobForm: React.FC = () => {
               className="w-4 h-4 mr-2 accent-secondary"
               disabled={isSubmitting}
             />
-            <label htmlFor="autoRenew" className="text-sm font-medium text-gray-600">
+            <label htmlFor="autoRenew" className="text-sm font-medium text-textLight">
               Enable Auto-Renewal of Job Posting
             </label>
           </div>
           
-          <div className="flex justify-between gap-4">
+          <div className="flex justify-end gap-4 pt-2">
             <button
               type="button"
               onClick={() => router.back()}
-              className="px-4 py-2 border border-gray-300 rounded-lg bg-white text-gray-700 font-medium text-sm hover:bg-gray-50 transition-colors flex-1"
+              className="px-5 py-2.5 border border-border rounded-lg bg-white text-text font-medium text-sm hover:bg-gray-50 transition-colors"
               disabled={isSubmitting}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className={`px-4 py-2 bg-secondary text-white rounded-lg font-medium text-sm hover:bg-buttonHover transition-all flex-2 
-                ${isSubmitting ? 'bg-opacity-80 cursor-not-allowed' : ''}`}
+              className={`px-5 py-2.5 bg-secondary text-white rounded-lg font-medium text-sm hover:bg-buttonHover transition-all 
+                ${isSubmitting ? 'opacity-80 cursor-not-allowed' : ''}`}
               disabled={isSubmitting}
             >
               {isSubmitting ? "Submitting..." : "Post Job"}
