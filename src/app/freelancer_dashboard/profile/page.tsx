@@ -3,11 +3,13 @@ import Navbar from "../../Components/navbar";
 import ProfileForm from "../../Components/ProfileForm";
 import GitHubRepositories from '../../Components/GitHubRepositories';
 import React, { useState, useEffect } from "react";
-import { Camera, MapPin, Globe, Mail, Phone, Briefcase } from 'lucide-react';
+import { Camera, MapPin, Globe, Mail, Phone, Briefcase, Award } from 'lucide-react';
 
 const FreelancerProfilePage = () => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [completionPercentage, setCompletionPercentage] = useState(0);
+  const [hasBadge, setHasBadge] = useState(false);
 
   const items = [
     { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
@@ -27,6 +29,13 @@ const FreelancerProfilePage = () => {
         if (response.ok) {
           const userData = await response.json();
           setUser(userData);
+          
+          // Calculate profile completion percentage if user data is available
+          if (userData && userData.profile) {
+            const percentage = calculateProfileCompletion(userData.profile);
+            setCompletionPercentage(percentage);
+            setHasBadge(percentage === 100);
+          }
         }
       } catch (error) {
         console.error("Error fetching user data:", error);
@@ -37,6 +46,42 @@ const FreelancerProfilePage = () => {
     
     fetchUser();
   }, []);
+  
+  // Calculate profile completion percentage
+  const calculateProfileCompletion = (profile: any): number => {
+    if (!profile) return 0;
+    
+    const requiredFields = [
+      'fullName',
+      'bio',
+      'skills',
+      'contactInfo.phone',
+      'contactInfo.location',
+      'contactInfo.website'
+    ];
+    
+    let completedFields = 0;
+    let totalFields = requiredFields.length;
+    
+    requiredFields.forEach(field => {
+      const fieldPath = field.split('.');
+      let value;
+      
+      if (fieldPath.length === 1) {
+        value = profile[fieldPath[0]];
+      } else if (profile[fieldPath[0]]) {
+        value = profile[fieldPath[0]][fieldPath[1]];
+      }
+      
+      if (Array.isArray(value)) {
+        if (value.length > 0) completedFields++;
+      } else if (value && String(value).trim() !== '') {
+        completedFields++;
+      }
+    });
+    
+    return Math.round((completedFields / totalFields) * 100);
+  };
 
   return (
     <div className="flex flex-col h-screen">
@@ -78,9 +123,19 @@ const FreelancerProfilePage = () => {
                   </div>
                   
                   <div className="flex-1">
-                    <h2 className="text-2xl font-semibold text-text">
-                      {user?.profile?.fullName || user?.username || 'Your Name'}
-                    </h2>
+                    <div className="flex items-center">
+                      <h2 className="text-2xl font-semibold text-text">
+                        {user?.profile?.fullName || user?.username || 'Your Name'}
+                      </h2>
+                      
+                      {/* Display badge if profile is complete */}
+                      {hasBadge && (
+                        <div className="ml-3 flex items-center bg-green-50 text-green-700 px-3 py-1 rounded-full text-xs">
+                          <Award size={14} className="mr-1" />
+                          Profile Star
+                        </div>
+                      )}
+                    </div>
                     
                     <div className="mt-3 flex flex-wrap gap-4 text-sm text-textLight">
                       {user?.profile?.contactInfo?.location && (
@@ -139,6 +194,24 @@ const FreelancerProfilePage = () => {
                         </div>
                       </div>
                     )}
+                    
+                    {/* Profile completion indicator for recruiters to see */}
+                    <div className="mt-4">
+                      <div className="flex items-center">
+                        <div className="text-sm text-gray-600 mr-2">Profile completion:</div>
+                        <div className="h-2 w-24 bg-gray-200 rounded overflow-hidden">
+                          <div 
+                            className={`h-full rounded ${
+                              completionPercentage === 100 ? "bg-green-500" : "bg-accent"
+                            }`} 
+                            style={{width: `${completionPercentage}%`}}
+                          ></div>
+                        </div>
+                        <span className="ml-2 text-xs text-gray-600">
+                          {completionPercentage}%
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

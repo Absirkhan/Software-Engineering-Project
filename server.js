@@ -6,6 +6,9 @@ const session = require('express-session');
 const bodyParser = require('body-parser');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -59,12 +62,14 @@ class Job {
 }
 
 class JobApplication {
-    constructor(jobId, freelancer, coverLetter, resume) {
+    constructor(jobId, freelancer, coverLetter, fileDetails) {
         this.id = uuidv4();
         this.jobId = jobId;
         this.freelancer = freelancer;
         this.coverLetter = coverLetter;
-        this.resume = resume;
+        this.genericResumePath = fileDetails.genericResumePath;
+        this.jobSpecificResumePath = fileDetails.jobSpecificResumePath;
+        this.coverLetterFilePath = fileDetails.coverLetterFilePath;
         this.status = 'pending'; // pending, accepted, rejected
         this.submittedAt = new Date().toISOString();
     }
@@ -98,11 +103,38 @@ class Interview {
     }
 }
 
+// Add new data models for saved jobs and ratings
+class SavedJob {
+    constructor(userId, jobId, savedAt) {
+        this.id = uuidv4();
+        this.userId = userId;
+        this.jobId = jobId;
+        this.savedAt = savedAt || new Date().toISOString();
+    }
+}
+
+class Rating {
+    constructor(freelancerId, clientId, jobId, applicationId, stars, comment, createdAt) {
+        this.id = uuidv4();
+        this.freelancerId = freelancerId;
+        this.clientId = clientId;
+        this.jobId = jobId;
+        this.applicationId = applicationId;
+        this.stars = stars; // 1-5
+        this.comment = comment;
+        this.createdAt = createdAt || new Date().toISOString();
+    }
+}
+
 let users = [];
 let jobs = [];
 let applications = [];
 let notifications = [];
 let interviews = [];
+
+// Add arrays to store the data
+let savedJobs = [];
+let ratings = [];
 
 // Configure GitHub OAuth strategy
 passport.use(
@@ -211,6 +243,44 @@ app.prepare().then(() => {
     server.use(passport.initialize());
     server.use(passport.session());
     server.use(express.json());
+
+    // Create uploads directory if it doesn't exist
+    const uploadDir = path.join(__dirname, 'uploads');
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
+
+    // Configure storage
+    const storage = multer.diskStorage({
+        destination: function (req, file, cb) {
+            const userId = req.user.id;
+            const userDir = path.join(uploadDir, userId);
+            
+            if (!fs.existsSync(userDir)) {
+                fs.mkdirSync(userDir, { recursive: true });
+            }
+            
+            cb(null, userDir);
+        },
+        filename: function (req, file, cb) {
+            const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+            const ext = path.extname(file.originalname);
+            cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+        }
+    });
+
+    const upload = multer({ 
+        storage: storage,
+        limits: {
+            fileSize: 5 * 1024 * 1024, // 5MB limit
+        },
+        fileFilter: (req, file, cb) => {
+            if (file.mimetype !== 'application/pdf') {
+                return cb(new Error('Only PDF files are allowed'));
+            }
+            cb(null, true);
+        }
+    });
 
     // Authentication middleware
     const isAuthenticated = (req, res, next) => {
@@ -500,49 +570,151 @@ app.prepare().then(() => {
 
     // Application routes
     server.post('/apply-job/:id', isAuthenticated, (req, res) => {
-        const jobId = req.params.id;
-        const job = jobs.find(j => j.id === jobId);
-        
-        if (!job) {
-            return res.status(404).json({ error: 'Job not found' });
-        }
-        
         if (req.user.role !== 'freelancer') {
             return res.status(403).json({ error: 'Only freelancers can apply for jobs' });
         }
         
-        // Check if already applied
-        const existingApplication = applications.find(
-            app => app.jobId === jobId && app.freelancer.id === req.user.id
-        );
+        const uploadFields = [
+            { name: 'genericResume', maxCount: 1 },
+            { name: 'jobSpecificResume', maxCount: 1 },
+            { name: 'coverLetterFile', maxCount: 1 }
+        ];
         
-        if (existingApplication) {
-            return res.status(400).json({ error: 'You have already applied for this job' });
+        const uploadMiddleware = upload.fields(uploadFields);
+        
+        uploadMiddleware(req, res, async (err) => {
+            if (err) {
+                console.error("File upload error:", err);
+                return res.status(400).json({ error: err.message });
+            }
+            
+            try {
+                const jobId = req.params.id;
+                const job = jobs.find(j => j.id === jobId);
+                
+                if (!job) {
+                    // Clean up uploaded files if job not found
+                    if (req.files) {
+                        Object.values(req.files).forEach(files => {
+                            files.forEach(file => {
+                                fs.unlinkSync(file.path);
+                            });
+                        });
+                    }
+                    return res.status(404).json({ error: 'Job not found' });
+                }
+                
+                // Check if already applied
+                const existingApplication = applications.find(
+                    app => app.jobId === jobId && app.freelancer.id === req.user.id
+                );
+                
+                if (existingApplication) {
+                    // Clean up uploaded files if already applied
+                    if (req.files) {
+                        Object.values(req.files).forEach(files => {
+                            files.forEach(file => {
+                                fs.unlinkSync(file.path);
+                            });
+                        });
+                    }
+                    return res.status(400).json({ error: 'You have already applied for this job' });
+                }
+                
+                const fileDetails = {
+                    genericResumePath: req.files.genericResume ? req.files.genericResume[0].path : null,
+                    jobSpecificResumePath: req.files.jobSpecificResume ? req.files.jobSpecificResume[0].path : null,
+                    coverLetterFilePath: req.files.coverLetterFile ? req.files.coverLetterFile[0].path : null
+                };
+                
+                if (!fileDetails.genericResumePath) {
+                    return res.status(400).json({ error: 'Generic resume is required' });
+                }
+                
+                const application = new JobApplication(
+                    jobId,
+                    {
+                        id: req.user.id,
+                        username: req.user.username,
+                        email: req.user.email
+                    },
+                    req.body.coverLetter,
+                    fileDetails
+                );
+                
+                applications.push(application);
+                job.applications.push(application.id);
+                
+                // Create notification for the job owner
+                const notification = new Notification(
+                    job.client.id,
+                    `New application received for "${job.title}" from ${req.user.username}`,
+                    'job-application'
+                );
+                notifications.push(notification);
+                
+                res.status(201).json({ message: 'Application submitted successfully', application });
+            } catch (error) {
+                console.error("Error in application submission:", error);
+                // Clean up uploaded files on error
+                if (req.files) {
+                    Object.values(req.files).forEach(files => {
+                        files.forEach(file => {
+                            fs.unlinkSync(file.path);
+                        });
+                    });
+                }
+                res.status(500).json({ error: 'Server error processing your application' });
+            }
+        });
+    });
+
+    // Serve uploaded files
+    server.get('/uploads/:userId/:filename', isAuthenticated, (req, res) => {
+        const { userId, filename } = req.params;
+        
+        // Security check - only allow access to files if:
+        // 1. The user is accessing their own files
+        // 2. The user is a client viewing files from an application to their job
+        let hasAccess = req.user.id === userId;
+        
+        if (!hasAccess && req.user.role === 'client') {
+            // Check if this is a file from an application to the client's job
+            const application = applications.find(app => {
+                // Look for application where:
+                // 1. The freelancer ID matches the userId in the URL
+                // 2. The file path contains the filename
+                const isFreelancerFile = app.freelancer.id === userId;
+                const hasFile = (
+                    (app.genericResumePath && app.genericResumePath.includes(filename)) ||
+                    (app.jobSpecificResumePath && app.jobSpecificResumePath.includes(filename)) ||
+                    (app.coverLetterFilePath && app.coverLetterFilePath.includes(filename))
+                );
+                
+                if (isFreelancerFile && hasFile) {
+                    // Check if this application is for a job owned by the requesting client
+                    const job = jobs.find(j => j.id === app.jobId && j.client.id === req.user.id);
+                    return job !== undefined;
+                }
+                
+                return false;
+            });
+            
+            hasAccess = application !== undefined;
         }
         
-        const application = new JobApplication(
-            jobId,
-            {
-                id: req.user.id,
-                username: req.user.username,
-                email: req.user.email
-            },
-            req.body.coverLetter,
-            req.body.resume
-        );
+        if (!hasAccess) {
+            return res.status(403).json({ error: 'You do not have permission to access this file' });
+        }
         
-        applications.push(application);
-        job.applications.push(application.id);
+        const filePath = path.join(uploadDir, userId, filename);
         
-        // Create notification for the job owner
-        const notification = new Notification(
-            job.client.id,
-            `New application received for "${job.title}" from ${req.user.username}`,
-            'job-application'
-        );
-        notifications.push(notification);
+        // Check if file exists
+        if (!fs.existsSync(filePath)) {
+            return res.status(404).json({ error: 'File not found' });
+        }
         
-        res.status(201).json({ message: 'Application submitted successfully', application });
+        res.sendFile(filePath);
     });
 
     server.get('/get-applications', isAuthenticated, (req, res) => {
@@ -560,7 +732,10 @@ app.prepare().then(() => {
                     ...app,
                     jobTitle: job ? job.title : 'Unknown Job',
                     interviewDateTime: interview?.dateTime,
-                    interviewMessage: interview?.message
+                    interviewMessage: interview?.message,
+                    genericResumePath: app.genericResumePath,
+                    jobSpecificResumePath: app.jobSpecificResumePath,
+                    coverLetterFilePath: app.coverLetterFilePath
                 };
             });
             
@@ -578,7 +753,10 @@ app.prepare().then(() => {
                     jobTitle: job ? job.title : 'Unknown Job',
                     client: job ? job.client : null,
                     interviewDateTime: interview?.dateTime,
-                    interviewMessage: interview?.message
+                    interviewMessage: interview?.message,
+                    genericResumePath: app.genericResumePath,
+                    jobSpecificResumePath: app.jobSpecificResumePath,
+                    coverLetterFilePath: app.coverLetterFilePath
                 };
             });
             
@@ -607,7 +785,10 @@ app.prepare().then(() => {
                     ...app,
                     jobTitle: job.title,
                     interviewDateTime: interview?.dateTime,
-                    interviewMessage: interview?.message
+                    interviewMessage: interview?.message,
+                    genericResumePath: app.genericResumePath,
+                    jobSpecificResumePath: app.jobSpecificResumePath,
+                    coverLetterFilePath: app.coverLetterFilePath
                 };
             });
             
@@ -783,6 +964,315 @@ app.prepare().then(() => {
                 username: req.user.username, 
                 email: req.user.email,
                 role: req.user.role
+            } : null
+        });
+    });
+
+    server.get('/get-company/:id', (req, res) => {
+        const userId = req.params.id;
+        const user = users.find(u => u.id === userId && u.role === 'client');
+        
+        if (user) {
+            // Return only necessary and public information about the company
+            const companyData = {
+                id: user.id,
+                username: user.username,
+                email: user.email,
+                profile: user.profile || {}
+            };
+            
+            res.json(companyData);
+        } else {
+            res.status(404).json({ error: 'Company not found' });
+        }
+    });
+
+    // Routes for saved jobs
+    server.post('/save-job/:id', isAuthenticated, (req, res) => {
+        const jobId = req.params.id;
+        const userId = req.user.id;
+        
+        // Check if job exists
+        const job = jobs.find(j => j.id === jobId);
+        if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+        
+        // Check if already saved
+        const existingSave = savedJobs.find(sj => sj.jobId === jobId && sj.userId === userId);
+        if (existingSave) {
+            return res.status(400).json({ error: 'Job already saved', savedJob: existingSave });
+        }
+        
+        // Create new saved job
+        const savedJob = new SavedJob(userId, jobId, new Date().toISOString());
+        savedJobs.push(savedJob);
+        
+        res.status(201).json({ message: 'Job saved successfully', savedJob });
+    });
+
+    server.delete('/unsave-job/:id', isAuthenticated, (req, res) => {
+        const jobId = req.params.id;
+        const userId = req.user.id;
+        
+        const index = savedJobs.findIndex(sj => sj.jobId === jobId && sj.userId === userId);
+        
+        if (index === -1) {
+            return res.status(404).json({ error: 'Saved job not found' });
+        }
+        
+        const removedJob = savedJobs.splice(index, 1)[0];
+        res.json({ message: 'Job removed from saved jobs', savedJob: removedJob });
+    });
+
+    server.get('/saved-jobs', isAuthenticated, (req, res) => {
+        const userSavedJobs = savedJobs.filter(sj => sj.userId === req.user.id);
+        
+        // Enrich with job details
+        const enrichedSavedJobs = userSavedJobs.map(savedJob => {
+            const job = jobs.find(j => j.id === savedJob.jobId);
+            return {
+                ...savedJob,
+                job
+            };
+        });
+        
+        res.json(enrichedSavedJobs);
+    });
+
+    server.get('/is-job-saved/:id', isAuthenticated, (req, res) => {
+        const jobId = req.params.id;
+        const userId = req.user.id;
+        
+        const isSaved = savedJobs.some(sj => sj.jobId === jobId && sj.userId === userId);
+        res.json({ isSaved });
+    });
+
+    
+
+    // Routes for ratings and reviews
+    server.post('/rate-client/:clientId', isAuthenticated, (req, res) => {
+        if (req.user.role !== 'freelancer') {
+            return res.status(403).json({ error: 'Only freelancers can rate clients' });
+        }
+        
+        const clientId = req.params.clientId;
+        const { jobId, applicationId, stars, comment } = req.body;
+        
+        // Validate input
+        if (!stars || stars < 1 || stars > 5) {
+            return res.status(400).json({ error: 'Stars must be between 1 and 5' });
+        }
+        
+        // Check if application exists and is completed
+        const application = applications.find(a => a.id === applicationId);
+        if (!application) {
+            return res.status(404).json({ error: 'Application not found' });
+        }
+        
+        // Check if application is completed or rejected
+        if (application.status !== 'accepted' && application.status !== 'rejected') {
+            return res.status(400).json({ error: 'You can only rate after the application process is completed' });
+        }
+        
+        // Check if user has already rated this application
+        const existingRating = ratings.find(r => 
+            r.applicationId === applicationId && r.freelancerId === req.user.id
+        );
+        
+        if (existingRating) {
+            // Update existing rating
+            existingRating.stars = stars;
+            existingRating.comment = comment;
+            
+            return res.json({ 
+                message: 'Rating updated successfully', 
+                rating: existingRating 
+            });
+        }
+        
+        // Create new rating
+        const rating = new Rating(
+            req.user.id,
+            clientId,
+            jobId,
+            applicationId,
+            stars,
+            comment
+        );
+        
+        ratings.push(rating);
+        
+        // Create notification for the client
+        const notification = new Notification(
+            clientId,
+            `You have received a ${stars}-star rating from ${req.user.username}`,
+            'rating'
+        );
+        notifications.push(notification);
+        
+        res.status(201).json({ message: 'Rating submitted successfully', rating });
+    });
+
+    server.get('/client-ratings/:clientId', (req, res) => {
+        const clientId = req.params.clientId;
+        
+        // Check if client exists
+        const clientExists = users.some(u => u.id === clientId && u.role === 'client');
+        if (!clientExists) {
+            return res.status(404).json({ error: 'Client not found' });
+        }
+        
+        // Get all ratings for this client
+        const clientRatings = ratings.filter(r => r.clientId === clientId);
+        
+        // Calculate average rating
+        const totalStars = clientRatings.reduce((sum, rating) => sum + rating.stars, 0);
+        const averageRating = clientRatings.length > 0 ? (totalStars / clientRatings.length).toFixed(1) : 0;
+        
+        // Enrich ratings with freelancer info and ensure comments (reviews) are included
+        const enrichedRatings = clientRatings.map(rating => {
+            const freelancer = users.find(u => u.id === rating.freelancerId);
+            const job = jobs.find(j => j.id === rating.jobId);
+            
+            return {
+                id: rating.id,
+                stars: rating.stars,
+                comment: rating.comment, // Include the review/comment
+                createdAt: rating.createdAt,
+                freelancer: freelancer ? {
+                    id: freelancer.id,
+                    username: freelancer.username,
+                    profilePicture: freelancer.profile?.profilePicture
+                } : null,
+                job: job ? {
+                    id: job.id,
+                    title: job.title
+                } : null
+            };
+        });
+        
+        // Sort by date (most recent first)
+        enrichedRatings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
+        res.json({
+            ratings: enrichedRatings,
+            reviews: enrichedRatings.filter(r => r.comment && r.comment.trim() !== ''), // Include only ratings with comments as reviews
+            averageRating,
+            totalRatings: clientRatings.length,
+            totalReviews: enrichedRatings.filter(r => r.comment && r.comment.trim() !== '').length
+        });
+    });
+
+    server.get('/my-submitted-ratings', isAuthenticated, (req, res) => {
+        if (req.user.role !== 'freelancer') {
+            return res.status(403).json({ error: 'Only freelancers can view their submitted ratings' });
+        }
+        
+        const userRatings = ratings.filter(r => r.freelancerId === req.user.id);
+        
+        // Enrich ratings with client and job info
+        const enrichedRatings = userRatings.map(rating => {
+            const client = users.find(u => u.id === rating.clientId);
+            const job = jobs.find(j => j.id === rating.jobId);
+            
+            return {
+                ...rating,
+                client: client ? {
+                    id: client.id,
+                    username: client.username
+                } : null,
+                job: job ? {
+                    id: job.id,
+                    title: job.title
+                } : null
+            };
+        });
+        
+        res.json(enrichedRatings);
+    });
+
+    // Add a route to get badges based on profile completion and other metrics
+    server.get('/get-user-badges', isAuthenticated, (req, res) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+        
+        const badges = [];
+        
+        // Check if user has a complete profile (implement your calculation logic here)
+        const profileComplete = calculateProfileCompletion(req.user.profile) === 100;
+        
+        if (profileComplete) {
+            badges.push({
+                id: 'profile_star',
+                name: 'Profile Star',
+                description: 'Completed 100% of profile information',
+                dateEarned: new Date().toISOString()
+            });
+        }
+        
+        // Add other badge checks here (quick response time, etc.)
+        
+        res.json(badges);
+    });
+
+    // Helper function to calculate profile completion percentage
+    function calculateProfileCompletion(profile) {
+        if (!profile) return 0;
+        
+        const requiredFields = [
+            'fullName',
+            'bio',
+            'skills',
+            ['contactInfo', 'phone'],
+            ['contactInfo', 'location'],
+            ['contactInfo', 'website']
+        ];
+        
+        let completedFields = 0;
+        
+        for (const field of requiredFields) {
+            if (Array.isArray(field)) {
+                // Handle nested fields like contactInfo.phone
+                if (profile[field[0]] && profile[field[0]][field[1]] && 
+                    String(profile[field[0]][field[1]]).trim() !== '') {
+                    completedFields++;
+                }
+            } else if (field === 'skills') {
+                // Special handling for skills array
+                if (Array.isArray(profile.skills) && profile.skills.length > 0) {
+                    completedFields++;
+                }
+            } else if (profile[field] && String(profile[field]).trim() !== '') {
+                completedFields++;
+            }
+        }
+        
+        return Math.round((completedFields / requiredFields.length) * 100);
+    }
+
+    // Endpoint to check if a freelancer has completed their profile
+    server.get('/get-freelancer-completion/:freelancerId', (req, res) => {
+        const freelancerId = req.params.freelancerId;
+        
+        // Find the freelancer
+        const freelancer = users.find(user => user.id === freelancerId && user.role === 'freelancer');
+        
+        if (!freelancer) {
+            return res.status(404).json({ error: 'Freelancer not found' });
+        }
+        
+        // Calculate profile completion
+        const isComplete = calculateProfileCompletion(freelancer.profile) === 100;
+        
+        // Return the completion status and badge information
+        res.json({
+            isComplete,
+            badge: isComplete ? {
+                id: 'profile_star',
+                name: 'Profile Star',
+                description: 'Completed 100% of profile information'
             } : null
         });
     });

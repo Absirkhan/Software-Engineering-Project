@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../../../Components/navbar";
 import { useParams, useRouter } from "next/navigation";
-import { ArrowLeft, Search, Calendar, User, FileText, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Search, Calendar, User, FileText, CheckCircle, XCircle, File, Download, Award } from "lucide-react";
 import InterviewScheduleModal from "../../../../Components/InterviewScheduleModal";
 
 interface Application {
@@ -15,7 +15,9 @@ interface Application {
     email: string;
   };
   coverLetter: string;
-  resume: string;
+  genericResumePath: string | null;
+  jobSpecificResumePath: string | null;
+  coverLetterFilePath: string | null;
   status: 'pending' | 'accepted' | 'rejected';
   submittedAt: string;
   interviewDateTime?: string; // Optional property for interview scheduling
@@ -35,6 +37,7 @@ const JobApplicationsPage = () => {
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [freelancerBadges, setFreelancerBadges] = useState<{[key: string]: boolean}>({});
   
   const params = useParams();
   const router = useRouter();
@@ -82,6 +85,25 @@ const JobApplicationsPage = () => {
         if (applicationsData.length > 0) {
           setSelectedApplication(applicationsData[0]);
         }
+
+        // Fetch profile completion status for each freelancer
+        const badgesInfo: {[key: string]: boolean} = {};
+        
+        for (const app of applicationsData) {
+          if (app.freelancer && app.freelancer.id) {
+            try {
+              const response = await fetch(`/get-freelancer-completion/${app.freelancer.id}`);
+              if (response.ok) {
+                const data = await response.json();
+                badgesInfo[app.freelancer.id] = data.isComplete || false;
+              }
+            } catch (error) {
+              console.error(`Error fetching badge for freelancer ${app.freelancer.id}:`, error);
+            }
+          }
+        }
+        
+        setFreelancerBadges(badgesInfo);
       } catch (err) {
         console.error("Error fetching data:", err);
         setError("Failed to load data. Please try again later.");
@@ -249,6 +271,25 @@ const JobApplicationsPage = () => {
     router.push("/client_dashboard/jobs");
   };
 
+  const FileLink = ({ filePath, label }: { filePath: string | null, label: string }) => {
+    if (!filePath) return null;
+    
+    const fileName = filePath.split('/').pop() || 'file';
+    
+    return (
+      <a 
+        href={filePath} 
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center p-3 border border-border rounded-lg hover:bg-gray-50 transition-colors mb-3"
+      >
+        <File size={18} className="mr-2 text-accent" />
+        <span className="text-sm text-text flex-1">{label}</span>
+        <Download size={16} className="text-textLight" />
+      </a>
+    );
+  };
+
   return (
     <div className="flex flex-col h-screen">
       <Navbar initialRole="Client" items={items} />
@@ -316,8 +357,16 @@ const JobApplicationsPage = () => {
                           onClick={() => setSelectedApplication(application)}
                         >
                           <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-medium text-text">
+                            <h3 className="font-medium text-text flex items-center">
                               {application.freelancer.username}
+                              
+                              {/* Show badge if freelancer has completed profile */}
+                              {freelancerBadges[application.freelancer.id] && (
+                                <span className="ml-2 inline-flex items-center bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                  <Award size={12} className="mr-1" />
+                                  Profile Star
+                                </span>
+                              )}
                             </h3>
                             {getStatusBadge(application.status)}
                           </div>
@@ -351,10 +400,42 @@ const JobApplicationsPage = () => {
                           <User size={24} className="text-gray-500" />
                         </div>
                         <div>
-                          <p className="font-medium text-text">{selectedApplication.freelancer.username}</p>
+                          <div className="flex items-center">
+                            <p className="font-medium text-text">{selectedApplication.freelancer.username}</p>
+                            
+                            {/* Show badge in the detailed view too */}
+                            {freelancerBadges[selectedApplication.freelancer.id] && (
+                              <span className="ml-2 inline-flex items-center bg-green-50 text-green-700 px-2 py-0.5 rounded-full text-xs">
+                                <Award size={12} className="mr-1" />
+                                Profile Star
+                              </span>
+                            )}
+                          </div>
                           <p className="text-sm text-textLight">{selectedApplication.freelancer.email}</p>
                         </div>
                       </div>
+                    </div>
+                    
+                    <div className="mb-6">
+                      <h3 className="text-md font-semibold text-text mb-2">Resume/CV Files</h3>
+                      
+                      {selectedApplication.genericResumePath && (
+                        <FileLink 
+                          filePath={selectedApplication.genericResumePath.replace(/^.*uploads/, '/uploads')} 
+                          label="Generic Resume"
+                        />
+                      )}
+                      
+                      {selectedApplication.jobSpecificResumePath && (
+                        <FileLink 
+                          filePath={selectedApplication.jobSpecificResumePath.replace(/^.*uploads/, '/uploads')} 
+                          label="Job-Specific Resume"
+                        />
+                      )}
+                      
+                      {!selectedApplication.genericResumePath && !selectedApplication.jobSpecificResumePath && (
+                        <p className="text-sm text-textLight">No resume files uploaded</p>
+                      )}
                     </div>
                     
                     <div className="mb-6">
@@ -364,15 +445,15 @@ const JobApplicationsPage = () => {
                           {selectedApplication.coverLetter}
                         </p>
                       </div>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <h3 className="text-md font-semibold text-text mb-2">Resume/CV</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-textLight whitespace-pre-line">
-                          {selectedApplication.resume}
-                        </p>
-                      </div>
+                      
+                      {selectedApplication.coverLetterFilePath && (
+                        <div className="mt-3">
+                          <FileLink 
+                            filePath={selectedApplication.coverLetterFilePath.replace(/^.*uploads/, '/uploads')} 
+                            label="Formal Cover Letter Document"
+                          />
+                        </div>
+                      )}
                     </div>
                     
                     {selectedApplication.status === 'pending' && (

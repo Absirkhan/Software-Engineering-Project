@@ -2,10 +2,10 @@
   "/favicon.ico/route": "app/favicon.ico/route.js",
   "/freelancer_dashboard/page": "app/freelancer_dashboard/page.js",
   "/freelancer_dashboard/searchjob/[id]/page": "app/freelancer_dashboard/searchjob/[id]/page.js",
-  "/client_dashboard/jobs/[id]/applications/page": "app/client_dashboard/jobs/[id]/applications/page.js",
-  "/client_dashboard/jobs/page": "app/client_dashboard/jobs/page.js",
-  "/freelancer_dashboard/applications/page": "app/freelancer_dashboard/applications/page.js",
-  "/client_dashboard/settings/page": "app/client_dashboard/settings/page.js",
-  "/freelancer_dashboard/settings/page": "app/freelancer_dashboard/settings/page.js",
-  "/client_dashboard/page": "app/client_dashboard/page.js"
+  "/client_dashboard/profile/page": "app/client_dashboard/profile/page.js",
+  "/freelancer_dashboard/profile/page": "app/freelancer_dashboard/profile/page.js",
+  "/page": "app/page.js",
+  "/auth/register/page": "app/auth/register/page.js",
+  "/freelancer_dashboard/searchjob/page": "app/freelancer_dashboard/searchjob/page.js",
+  "/freelancer_dashboard/applications/page": "app/freelancer_dashboard/applications/page.js"
 }

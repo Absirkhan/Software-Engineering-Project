@@ -3,6 +3,7 @@ import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
 import { Search, Briefcase, MapPin, DollarSign, Filter } from 'lucide-react';
 import Link from "next/link";
+import SaveJobButton from "../../Components/SaveJobButton";
 
 const SearchJobPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -18,7 +19,8 @@ const SearchJobPage = () => {
   const items = [
     { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
     { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Job", icon: "folder", href: "/freelancer_dashboard/searchjob" },
+    { name: "Search Jobs", icon: "search", href: "/freelancer_dashboard/searchjob" },
+    { name: "Saved Jobs", icon: "bookmark", href: "/freelancer_dashboard/saved_jobs" },
     { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
     { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
     { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
@@ -217,7 +219,8 @@ const SearchJobPage = () => {
                       </div>
                     </div>
                     
-                    <div className="mt-4 md:mt-0 md:ml-4">
+                    <div className="mt-4 md:mt-0 md:ml-4 flex items-center gap-2">
+                      <SaveJobButton jobId={job.id} className="mr-2" />
                       <Link 
                         href={`/freelancer_dashboard/searchjob/${job.id}`}
                         className="px-4 py-2 bg-secondary text-white rounded-lg font-medium text-sm hover:bg-buttonHover transition-all inline-block"

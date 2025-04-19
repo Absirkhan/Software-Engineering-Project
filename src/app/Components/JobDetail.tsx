@@ -1,6 +1,8 @@
 "use client";
-import React from "react";
-import { Briefcase, MapPin, Calendar, DollarSign, User, Building } from 'lucide-react';
+import React, { useState } from "react";
+import { Briefcase, MapPin, Calendar, DollarSign, User, Building, Info } from 'lucide-react';
+import CompanyProfileCard from "./CompanyProfileCard";
+import SaveJobButton from './SaveJobButton';
 
 interface JobDetailProps {
   job: any;
@@ -8,6 +10,7 @@ interface JobDetailProps {
   onApply?: () => void;
   onEdit?: () => void;
   onDelete?: () => void;
+  isOwner?: boolean;
 }
 
 const JobDetail: React.FC<JobDetailProps> = ({ 
@@ -15,8 +18,11 @@ const JobDetail: React.FC<JobDetailProps> = ({
   showActions = true,
   onApply,
   onEdit,
-  onDelete 
+  onDelete,
+  isOwner = false
 }) => {
+  const [showCompanyProfile, setShowCompanyProfile] = useState(false);
+  
   // Format date to human readable format
   const formatDate = (dateString: string) => {
     if (!dateString) return 'N/A';
@@ -28,6 +34,7 @@ const JobDetail: React.FC<JobDetailProps> = ({
     <div className="bg-white rounded-xl shadow-card p-6">
       <div className="flex justify-between items-start mb-4">
         <h2 className="text-2xl font-semibold text-text">{job.title}</h2>
+        {!isOwner && <SaveJobButton jobId={job.id} buttonText={true} />}
         {job.status && (
           <span 
             className={`px-2 py-1 text-xs font-medium rounded ${
@@ -60,15 +67,34 @@ const JobDetail: React.FC<JobDetailProps> = ({
       
       {job.client && (
         <div className="mb-6 p-4 bg-gray-50 rounded-lg">
-          <div className="flex items-center">
-            <div className="p-2 bg-gray-200 rounded-full mr-3">
-              <Building size={18} className="text-secondary" />
+          <div className="flex justify-between items-center">
+            <div className="flex items-center">
+              <div className="p-2 bg-gray-200 rounded-full mr-3">
+                <Building size={18} className="text-secondary" />
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-text">Posted by {job.client.username}</h3>
+                <p className="text-xs text-textLight">Contact: {job.client.email}</p>
+              </div>
             </div>
-            <div>
-              <h3 className="text-sm font-medium text-text">Posted by {job.client.username}</h3>
-              <p className="text-xs text-textLight">Contact: {job.client.email}</p>
-            </div>
+            <button 
+              onClick={() => setShowCompanyProfile(!showCompanyProfile)} 
+              className="text-sm text-accent hover:underline flex items-center"
+            >
+              <Info size={14} className="mr-1" />
+              {showCompanyProfile ? 'Hide company profile' : 'View company profile'}
+            </button>
           </div>
+        </div>
+      )}
+
+      {/* Show company profile when the button is clicked */}
+      {showCompanyProfile && job.client && (
+        <div className="mb-6">
+          <CompanyProfileCard 
+            companyId={job.client.id} 
+            onClose={() => setShowCompanyProfile(false)}
+          />
         </div>
       )}
       

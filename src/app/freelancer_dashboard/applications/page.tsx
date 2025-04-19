@@ -1,18 +1,24 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
-import { FileText, CheckCircle, XCircle, Clock, FileX } from 'lucide-react';
+import { FileText, CheckCircle, XCircle, Clock, FileX, File, Download } from 'lucide-react';
 import Link from 'next/link';
+import RatingStars from "../../Components/RatingStars";
+import RatingModal from "../../Components/RatingModal";
 
 interface Application {
   id: string;
+  jobId: string; // Added this missing property
   jobTitle: string;
   client?: {
+    id: string; // Added this missing property
     username: string;
   };
   submittedAt: string;
   coverLetter: string;
-  resume: string;
+  genericResumePath: string | null;
+  jobSpecificResumePath: string | null;
+  coverLetterFilePath: string | null;
   status: string;
   interviewDateTime?: string;
   interviewMessage?: string;
@@ -23,6 +29,12 @@ const ApplicationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [showRatingModal, setShowRatingModal] = useState(false);
+  const [selectedClientId, setSelectedClientId] = useState<string | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedJobTitle, setSelectedJobTitle] = useState<string>('');
+  const [selectedClientName, setSelectedClientName] = useState<string>('');
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
 
   const items = [
     { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
@@ -34,25 +46,25 @@ const ApplicationsPage = () => {
     { name: "Logout", icon: "logout", href: "/auth/logout" }
   ];
   
-  useEffect(() => {
-    const fetchApplications = async () => {
-      setLoading(true);
-      try {
-        const response = await fetch("/get-applications");
-        if (response.ok) {
-          const data = await response.json();
-          setApplications(data);
-        } else {
-          setError("Failed to fetch applications. Please try again later.");
-        }
-      } catch (error) {
-        console.error("Error fetching applications:", error);
-        setError("An error occurred while fetching applications. Please try again later.");
-      } finally {
-        setLoading(false);
+  const fetchApplications = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/get-applications");
+      if (response.ok) {
+        const data = await response.json();
+        setApplications(data);
+      } else {
+        setError("Failed to fetch applications. Please try again later.");
       }
-    };
-    
+    } catch (error) {
+      console.error("Error fetching applications:", error);
+      setError("An error occurred while fetching applications. Please try again later.");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     fetchApplications();
   }, []);
 
@@ -102,6 +114,61 @@ const ApplicationsPage = () => {
           </span>
         );
     }
+  };
+
+  const FileLink = ({ filePath, label }: { filePath: string | null, label: string }) => {
+    if (!filePath) return null;
+    
+    const fileName = filePath.split('/').pop() || 'file';
+    
+    return (
+      <a 
+        href={filePath} 
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center p-3 border border-border rounded-lg hover:bg-gray-50 transition-colors mb-3"
+      >
+        <File size={18} className="mr-2 text-accent" />
+        <span className="text-sm text-text flex-1">{label}</span>
+        <Download size={16} className="text-textLight" />
+      </a>
+    );
+  };
+
+  const handleRateClient = (applicationId: string, clientId: string, clientName: string, jobId: string, jobTitle: string) => {
+    setSelectedApplicationId(applicationId);
+    setSelectedClientId(clientId);
+    setSelectedClientName(clientName);
+    setSelectedJobId(jobId);
+    setSelectedJobTitle(jobTitle);
+    setShowRatingModal(true);
+  };
+
+  const submitRating = async (stars: number, comment: string) => {
+    if (!selectedClientId || !selectedJobId || !selectedApplicationId) {
+      throw new Error('Missing required information for rating');
+    }
+
+    const response = await fetch(`/rate-client/${selectedClientId}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        jobId: selectedJobId,
+        applicationId: selectedApplicationId,
+        stars,
+        comment
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || 'Failed to submit rating');
+    }
+
+    // Refresh applications after rating
+    fetchApplications();
   };
 
   return (
@@ -187,21 +254,43 @@ const ApplicationsPage = () => {
                     </div>
                     
                     <div className="mb-6">
+                      <h3 className="text-md font-semibold text-text mb-2">Resume/CV Files</h3>
+                      
+                      {selectedApplication.genericResumePath && (
+                        <FileLink 
+                          filePath={selectedApplication.genericResumePath.replace(/^.*uploads/, '/uploads')} 
+                          label="Generic Resume"
+                        />
+                      )}
+                      
+                      {selectedApplication.jobSpecificResumePath && (
+                        <FileLink 
+                          filePath={selectedApplication.jobSpecificResumePath.replace(/^.*uploads/, '/uploads')} 
+                          label="Job-Specific Resume"
+                        />
+                      )}
+                      
+                      {!selectedApplication.genericResumePath && !selectedApplication.jobSpecificResumePath && (
+                        <p className="text-sm text-textLight">No resume files uploaded</p>
+                      )}
+                    </div>
+                    
+                    <div className="mb-6">
                       <h3 className="text-md font-semibold text-text mb-2">Cover Letter</h3>
                       <div className="bg-gray-50 p-4 rounded-lg">
                         <p className="text-sm text-textLight whitespace-pre-line">
                           {selectedApplication.coverLetter}
                         </p>
                       </div>
-                    </div>
-                    
-                    <div className="mb-6">
-                      <h3 className="text-md font-semibold text-text mb-2">Resume/CV</h3>
-                      <div className="bg-gray-50 p-4 rounded-lg">
-                        <p className="text-sm text-textLight whitespace-pre-line">
-                          {selectedApplication.resume}
-                        </p>
-                      </div>
+                      
+                      {selectedApplication.coverLetterFilePath && (
+                        <div className="mt-3">
+                          <FileLink 
+                            filePath={selectedApplication.coverLetterFilePath.replace(/^.*uploads/, '/uploads')} 
+                            label="Formal Cover Letter Document"
+                          />
+                        </div>
+                      )}
                     </div>
                     
                     <div className="border-t border-border pt-4 mt-4">
@@ -249,6 +338,52 @@ const ApplicationsPage = () => {
                           )}
                         </div>
                       </div>
+                    )}
+
+                    {selectedApplication && selectedApplication.client?.id && (
+                      <div className="border-t border-border pt-4 mt-4">
+                        <h3 className="text-md font-semibold text-text mb-2">Client Profile</h3>
+                        <p className="text-sm text-textLight mb-3">
+                          View the client's profile and ratings from other freelancers.
+                        </p>
+                        <Link
+                          href={`/freelancer_dashboard/client-profile/${selectedApplication.client.id}`}
+                          className="px-4 py-2 bg-gray-100 text-text hover:bg-gray-200 rounded-lg text-sm inline-flex items-center"
+                        >
+                          View Client Profile & Ratings
+                        </Link>
+                      </div>
+                    )}
+
+                    {selectedApplication && selectedApplication.status !== 'pending' && (
+                      <div className="border-t border-border pt-4 mt-4">
+                        <h3 className="text-md font-semibold text-text mb-2">Rate Client</h3>
+                        <p className="text-sm text-textLight mb-3">
+                          Share your experience working with this client to help other freelancers.
+                        </p>
+                        <button
+                          onClick={() => handleRateClient(
+                            selectedApplication.id,
+                            selectedApplication.client?.id || '', // Added null safety
+                            selectedApplication.client?.username || 'Unknown Client', // Added default
+                            selectedApplication.jobId,
+                            selectedApplication.jobTitle
+                          )}
+                          className="px-4 py-2 bg-secondary text-white rounded-lg text-sm"
+                        >
+                          Rate This Client
+                        </button>
+                      </div>
+                    )}
+      
+                    {showRatingModal && (
+                      <RatingModal
+                        isOpen={showRatingModal}
+                        onClose={() => setShowRatingModal(false)}
+                        onSubmit={submitRating}
+                        clientName={selectedClientName}
+                        jobTitle={selectedJobTitle}
+                      />
                     )}
                   </div>
                 ) : (
