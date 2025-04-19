@@ -3,6 +3,7 @@ import Navbar from '../Components/navbar';
 import React, { useState, useEffect } from "react";
 import { colors, shadows } from '../Components/colors';
 import Link from 'next/link';
+import UpcomingInterviews from '../Components/UpcomingInterviews';
 
 const FreelancerDashboard = () => {
   const items = [
@@ -124,6 +125,13 @@ const FreelancerDashboard = () => {
                 </div>
                 <span className="ml-3 text-accent font-medium">60%</span>
               </div>
+            </div>
+
+            <div className="bg-white p-6 rounded-xl shadow-card">
+              <h2 className="text-xl font-semibold text-text mb-4">
+                Upcoming Interviews
+              </h2>
+              <UpcomingInterviews userRole="freelancer" />
             </div>
           </div>
         </div>

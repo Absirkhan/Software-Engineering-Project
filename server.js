@@ -81,10 +81,28 @@ class Notification {
     }
 }
 
+class Interview {
+    constructor(applicationId, job, freelancer, client, dateTime, message) {
+        this.id = uuidv4();
+        this.applicationId = applicationId;
+        this.jobId = job.id;
+        this.jobTitle = job.title;
+        this.freelancerId = freelancer.id;
+        this.freelancerName = freelancer.username;
+        this.clientId = client.id;
+        this.clientName = client.username;
+        this.dateTime = dateTime;
+        this.message = message;
+        this.status = 'scheduled'; // scheduled, completed, cancelled
+        this.createdAt = new Date().toISOString();
+    }
+}
+
 let users = [];
 let jobs = [];
 let applications = [];
 let notifications = [];
+let interviews = [];
 
 // Configure GitHub OAuth strategy
 passport.use(
@@ -537,9 +555,12 @@ app.prepare().then(() => {
             // Add job title to each application for easier frontend display
             const enrichedApplications = jobApplications.map(app => {
                 const job = jobs.find(j => j.id === app.jobId);
+                const interview = interviews.find(i => i.applicationId === app.id);
                 return {
                     ...app,
-                    jobTitle: job ? job.title : 'Unknown Job'
+                    jobTitle: job ? job.title : 'Unknown Job',
+                    interviewDateTime: interview?.dateTime,
+                    interviewMessage: interview?.message
                 };
             });
             
@@ -551,10 +572,13 @@ app.prepare().then(() => {
             // Add job title to each application
             const enrichedApplications = userApplications.map(app => {
                 const job = jobs.find(j => j.id === app.jobId);
+                const interview = interviews.find(i => i.applicationId === app.id);
                 return {
                     ...app,
                     jobTitle: job ? job.title : 'Unknown Job',
-                    client: job ? job.client : null
+                    client: job ? job.client : null,
+                    interviewDateTime: interview?.dateTime,
+                    interviewMessage: interview?.message
                 };
             });
             
@@ -578,9 +602,12 @@ app.prepare().then(() => {
             
             // Add job title to each application for easier frontend display
             const enrichedApplications = jobApplications.map(app => {
+                const interview = interviews.find(i => i.applicationId === app.id);
                 return {
                     ...app,
-                    jobTitle: job.title
+                    jobTitle: job.title,
+                    interviewDateTime: interview?.dateTime,
+                    interviewMessage: interview?.message
                 };
             });
             
@@ -628,6 +655,90 @@ app.prepare().then(() => {
         notifications.push(notification);
         
         res.json({ message: 'Application status updated', application });
+    });
+
+    // Interview routes
+    server.post('/schedule-interview/:applicationId', isAuthenticated, (req, res) => {
+        const applicationId = req.params.applicationId;
+        const { dateTime, message, scheduleNow } = req.body;
+        
+        // Find the application
+        const applicationIndex = applications.findIndex(app => app.id === applicationId);
+        
+        if (applicationIndex === -1) {
+            return res.status(404).json({ error: 'Application not found' });
+        }
+        
+        const application = applications[applicationIndex];
+        const job = jobs.find(j => j.id === application.jobId);
+        
+        if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+        
+        // Check if the user is the job owner
+        if (req.user.role !== 'client' || job.client.id !== req.user.id) {
+            return res.status(403).json({ error: 'You do not have permission to schedule an interview for this application' });
+        }
+        
+        // Update application status to accepted
+        application.status = 'accepted';
+        applications[applicationIndex] = application;
+        
+        // Create notification for the freelancer
+        let notificationMessage;
+        
+        if (scheduleNow && dateTime) {
+            // Create a new interview
+            const interview = new Interview(
+                applicationId,
+                job,
+                application.freelancer,
+                job.client,
+                dateTime,
+                message
+            );
+            
+            interviews.push(interview);
+            
+            // Update application with interview details
+            application.interviewDateTime = dateTime;
+            application.interviewMessage = message;
+            applications[applicationIndex] = application;
+            
+            notificationMessage = `Interview scheduled for "${job.title}" on ${new Date(dateTime).toLocaleString()}. ${message || ''}`;
+        } else {
+            notificationMessage = `Your application for "${job.title}" has been accepted. The employer will schedule an interview soon.`;
+        }
+        
+        const notification = new Notification(
+            application.freelancer.id,
+            notificationMessage,
+            'interview-scheduled'
+        );
+        notifications.push(notification);
+        
+        res.json({ 
+            message: 'Application accepted and interview ' + (scheduleNow ? 'scheduled' : 'pending'), 
+            application 
+        });
+    });
+
+    server.get('/get-interviews', isAuthenticated, (req, res) => {
+        let userInterviews;
+        
+        if (req.user.role === 'client') {
+            // Get interviews where this user is the client
+            userInterviews = interviews.filter(interview => interview.clientId === req.user.id);
+        } else {
+            // Get interviews where this user is the freelancer
+            userInterviews = interviews.filter(interview => interview.freelancerId === req.user.id);
+        }
+        
+        // Sort by date (most recent first)
+        userInterviews.sort((a, b) => new Date(a.dateTime) - new Date(b.dateTime));
+        
+        res.json(userInterviews);
     });
 
     // Notification routes

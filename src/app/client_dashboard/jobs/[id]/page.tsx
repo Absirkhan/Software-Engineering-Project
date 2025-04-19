@@ -1,6 +1,7 @@
 "use client";
 import Navbar from "../../../Components/navbar";
 import JobDetail from "../../../Components/JobDetail";
+import InterviewScheduleModal from "../../../Components/InterviewScheduleModal";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, User, CheckCircle, XCircle, Clock } from "lucide-react";
@@ -12,6 +13,9 @@ const JobDetailPage = () => {
   const [error, setError] = useState("");
   const [deleteConfirmation, setDeleteConfirmation] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
+  const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
+  const [selectedFreelancerName, setSelectedFreelancerName] = useState<string>('');
   
   const router = useRouter();
   const params = useParams();
@@ -96,6 +100,17 @@ const JobDetailPage = () => {
   
   const handleUpdateStatus = async (applicationId: string, status: string) => {
     try {
+      // If accepting, show the interview modal instead of immediately updating
+      if (status === 'accepted') {
+        const application = applications.find(app => app.id === applicationId);
+        if (application) {
+          setSelectedApplicationId(applicationId);
+          setSelectedFreelancerName(application.freelancer.username);
+          setShowInterviewModal(true);
+        }
+        return;
+      }
+
       const response = await fetch(`/update-application-status/${applicationId}`, {
         method: 'POST',
         headers: {
@@ -114,6 +129,66 @@ const JobDetailPage = () => {
       } else {
         const errorData = await response.json().catch(() => null);
         setError(errorData?.error || "Failed to update application status");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    }
+  };
+
+  const handleScheduleInterview = async (applicationId: string, dateTime: string, message: string) => {
+    try {
+      const response = await fetch(`/schedule-interview/${applicationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          dateTime, 
+          message,
+          scheduleNow: true
+        })
+      });
+      
+      if (response.ok) {
+        // Update the application status to accepted
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId ? { ...app, status: 'accepted' } : app
+          )
+        );
+        setShowInterviewModal(false);
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.error || "Failed to schedule interview. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    }
+  };
+
+  const handleScheduleLater = async (applicationId: string) => {
+    try {
+      const response = await fetch(`/schedule-interview/${applicationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          scheduleNow: false 
+        })
+      });
+      
+      if (response.ok) {
+        // Update the application status to accepted
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId ? { ...app, status: 'accepted' } : app
+          )
+        );
+        setShowInterviewModal(false);
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.error || "Failed to accept application. Please try again.");
       }
     } catch (err) {
       setError("An unexpected error occurred. Please try again.");
@@ -313,6 +388,17 @@ const JobDetailPage = () => {
           )}
         </div>
       </div>
+      
+      {showInterviewModal && selectedApplicationId && (
+        <InterviewScheduleModal
+          applicationId={selectedApplicationId}
+          freelancerName={selectedFreelancerName}
+          isOpen={showInterviewModal}
+          onClose={() => setShowInterviewModal(false)}
+          onSchedule={handleScheduleInterview}
+          onScheduleLater={handleScheduleLater}
+        />
+      )}
     </div>
   );
 };

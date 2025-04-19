@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../Components/navbar";
 import { Search, Filter, FileText, User, Calendar, CheckCircle, XCircle } from "lucide-react";
+import InterviewScheduleModal from "../../Components/InterviewScheduleModal";
 
 interface Application {
   id: string;
@@ -16,6 +17,7 @@ interface Application {
   resume: string;
   status: 'pending' | 'accepted' | 'rejected';
   submittedAt: string;
+  interviewDateTime?: string;
 }
 
 const ApplicationsPage = () => {
@@ -27,6 +29,7 @@ const ApplicationsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [showInterviewModal, setShowInterviewModal] = useState(false);
 
   const items = [
     { name: "Dashboard", icon: "home", href: "/client_dashboard" },
@@ -108,39 +111,128 @@ const ApplicationsPage = () => {
     }
   };
 
-  const handleUpdateStatus = async (applicationId: string, newStatus: 'accepted' | 'rejected') => {
+  const handleUpdateStatus = async (applicationId: string, status: string) => {
+    setProcessingId(applicationId);
+    
     try {
-      setProcessingId(applicationId);
+      // If accepting, show the interview modal instead of immediately updating
+      if (status === 'accepted') {
+        setShowInterviewModal(true);
+        return;
+      }
+      
       const response = await fetch(`/update-application-status/${applicationId}`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "include",
-        body: JSON.stringify({ status: newStatus }),
+        body: JSON.stringify({ status })
       });
       
-      if (!response.ok) {
-        throw new Error("Failed to update application status");
+      if (response.ok) {
+        // Update the application in the list
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId ? { ...app, status: status as Application['status'] } : app
+          )
+        );
+        
+        // Also update the selected application if it's the one being modified
+        if (selectedApplication && selectedApplication.id === applicationId) {
+          setSelectedApplication({
+            ...selectedApplication,
+            status: status as Application['status']
+          });
+        }
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.error || "Failed to update application status. Please try again.");
       }
-      
-      const updatedApplication = await response.json();
-      
-      // Update applications list
-      setApplications(prevApps => 
-        prevApps.map(app => 
-          app.id === applicationId ? {...app, status: newStatus} : app
-        )
-      );
-      
-      // Update selected application if it's the one being updated
-      if (selectedApplication && selectedApplication.id === applicationId) {
-        setSelectedApplication({...selectedApplication, status: newStatus});
-      }
-      
     } catch (err) {
-      console.error("Error updating application status:", err);
-      setError("Failed to update status. Please try again.");
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleScheduleInterview = async (applicationId: string, dateTime: string, message: string) => {
+    try {
+      const response = await fetch(`/schedule-interview/${applicationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          dateTime, 
+          message,
+          scheduleNow: true
+        })
+      });
+      
+      if (response.ok) {
+        // Update the application status to accepted
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId ? { ...app, status: 'accepted', interviewDateTime: dateTime } : app
+          )
+        );
+        
+        // Also update the selected application if it's the one being modified
+        if (selectedApplication && selectedApplication.id === applicationId) {
+          setSelectedApplication({
+            ...selectedApplication,
+            status: 'accepted',
+            interviewDateTime: dateTime
+          });
+        }
+        
+        setShowInterviewModal(false);
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.error || "Failed to schedule interview. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleScheduleLater = async (applicationId: string) => {
+    try {
+      const response = await fetch(`/schedule-interview/${applicationId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          scheduleNow: false 
+        })
+      });
+      
+      if (response.ok) {
+        // Update the application status to accepted
+        setApplications(apps => 
+          apps.map(app => 
+            app.id === applicationId ? { ...app, status: 'accepted' } : app
+          )
+        );
+        
+        // Also update the selected application if it's the one being modified
+        if (selectedApplication && selectedApplication.id === applicationId) {
+          setSelectedApplication({
+            ...selectedApplication,
+            status: 'accepted'
+          });
+        }
+        
+        setShowInterviewModal(false);
+      } else {
+        const errorData = await response.json().catch(() => null);
+        setError(errorData?.error || "Failed to accept application. Please try again.");
+      }
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.");
     } finally {
       setProcessingId(null);
     }
@@ -290,7 +382,7 @@ const ApplicationsPage = () => {
                         <button
                           onClick={() => handleUpdateStatus(selectedApplication.id, 'accepted')}
                           disabled={processingId === selectedApplication.id}
-                          className="px-4 py-2 bg-primary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all flex items-center"
+                          className="px-4 py-2 bg-secondary text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition-all flex items-center"
                         >
                           <CheckCircle size={16} className="mr-2" />
                           Accept
@@ -312,6 +404,17 @@ const ApplicationsPage = () => {
           )}
         </div>
       </div>
+
+      {showInterviewModal && selectedApplication && (
+        <InterviewScheduleModal
+          applicationId={selectedApplication.id}
+          freelancerName={selectedApplication.freelancer.username}
+          isOpen={showInterviewModal}
+          onClose={() => setShowInterviewModal(false)}
+          onSchedule={handleScheduleInterview}
+          onScheduleLater={handleScheduleLater}
+        />
+      )}
     </div>
   );
 };

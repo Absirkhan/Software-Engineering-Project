@@ -1,6 +1,7 @@
 "use client";
 import Navbar from '../Components/navbar';
 import React, { useState, useEffect } from "react";
+import UpcomingInterviews from '../Components/UpcomingInterviews';
 
 const ClientDashboard = () => {
   const items = [
@@ -83,6 +84,13 @@ const ClientDashboard = () => {
                 </div>
                 <span className="ml-3 text-accent font-medium">85%</span>
               </div>
+            </div>
+            
+            <div className="bg-white p-6 rounded-xl shadow-card">
+              <h2 className="text-xl font-semibold text-text mb-4">
+                Upcoming Interviews
+              </h2>
+              <UpcomingInterviews userRole="client" />
             </div>
           </div>
         </div>

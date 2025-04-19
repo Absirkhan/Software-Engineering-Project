@@ -4,10 +4,24 @@ import React, { useState, useEffect } from "react";
 import { FileText, CheckCircle, XCircle, Clock, FileX } from 'lucide-react';
 import Link from 'next/link';
 
+interface Application {
+  id: string;
+  jobTitle: string;
+  client?: {
+    username: string;
+  };
+  submittedAt: string;
+  coverLetter: string;
+  resume: string;
+  status: string;
+  interviewDateTime?: string;
+  interviewMessage?: string;
+}
+
 const ApplicationsPage = () => {
-  const [applications, setApplications] = useState<any[]>([]);
+  const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedApplication, setSelectedApplication] = useState<any>(null);
+  const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const items = [
@@ -46,6 +60,19 @@ const ApplicationsPage = () => {
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { year: 'numeric', month: 'long', day: 'numeric' };
     return new Date(dateString).toLocaleDateString(undefined, options);
+  };
+
+  // Format date and time for interviews
+  const formatDateTime = (dateTimeString: string) => {
+    if (!dateTimeString) return 'Not scheduled';
+    const options: Intl.DateTimeFormatOptions = { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    };
+    return new Date(dateTimeString).toLocaleDateString(undefined, options);
   };
 
   const getStatusBadge = (status: string) => {
@@ -195,6 +222,34 @@ const ApplicationsPage = () => {
                         )}
                       </div>
                     </div>
+
+                    {selectedApplication?.status === 'accepted' && (
+                      <div className="border-t border-border pt-4 mt-4">
+                        <h3 className="text-md font-semibold text-text mb-2">Interview Details</h3>
+                        <div className="bg-green-50 p-4 rounded-lg">
+                          {selectedApplication.interviewDateTime ? (
+                            <>
+                              <p className="text-sm font-medium text-green-800 mb-2">
+                                Your interview is scheduled for: {formatDateTime(selectedApplication.interviewDateTime)}
+                              </p>
+                              {selectedApplication.interviewMessage && (
+                                <div className="mt-2">
+                                  <p className="text-sm font-medium text-gray-700">Additional Information:</p>
+                                  <p className="text-sm text-gray-600">{selectedApplication.interviewMessage}</p>
+                                </div>
+                              )}
+                              <p className="text-xs text-gray-500 mt-2">
+                                You'll be contacted by the recruiter at the scheduled time. Make sure to be prepared!
+                              </p>
+                            </>
+                          ) : (
+                            <p className="text-sm text-green-700">
+                              Congratulations! Your application has been accepted. The recruiter will schedule an interview soon.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="bg-white rounded-xl shadow-card p-6 flex flex-col items-center justify-center" style={{minHeight: '300px'}}>
