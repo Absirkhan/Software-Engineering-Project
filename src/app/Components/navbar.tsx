@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  Bell
+  Bell,
+  MessageSquare
 } from 'lucide-react';
 
 interface NavbarProps {
@@ -130,7 +131,16 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
         </div>
         
         <div className="flex items-center">
-                    <Link href={role === 'Client' ? "/client_dashboard/settings" : "/freelancer_dashboard/settings"} className="relative p-2 text-textLight hover:text-secondary">
+          <Link href="/chat" className="relative p-2 mr-2 text-textLight hover:text-secondary">
+            <MessageSquare size={20} />
+            {/* Add this if you want to show unread message count */}
+            {/* {unreadMessageCount > 0 && (
+              <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
+                {unreadMessageCount > 9 ? '9+' : unreadMessageCount}
+              </span>
+            )} */}
+          </Link>
+          <Link href={role === 'Client' ? "/client_dashboard/settings" : "/freelancer_dashboard/settings"} className="relative p-2 text-textLight hover:text-secondary">
             <Bell size={20} />
             {notificationCount > 0 && (
               <span className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs w-5 h-5 flex items-center justify-center rounded-full">
@@ -156,6 +166,14 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
       {/* Mobile Navigation Menu */}
       {menuOpen && (
         <div className="absolute top-[68px] left-0 right-0 bg-white shadow-card p-2 z-50 md:hidden flex flex-col">
+          <Link 
+            href="/chat"
+            className="flex items-center p-3 rounded-lg mb-1 transition-all duration-200 text-text hover:bg-gray-50"
+            onClick={() => setMenuOpen(false)}
+          >
+            <MessageSquare size={20} className="mr-3 text-secondary" />
+            Messages
+          </Link>
           {items.map((item) => {
             const isActive = pathname === item.href;
             const IconComponent = iconMap[item.icon as keyof typeof iconMap];

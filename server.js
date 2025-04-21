@@ -9,6 +9,8 @@ const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
+const http = require('http');
+const socketIO = require('socket.io');
 
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
@@ -126,6 +128,18 @@ class Rating {
     }
 }
 
+// Add new ChatMessage class
+class ChatMessage {
+    constructor(senderId, receiverId, content, readStatus = false) {
+        this.id = uuidv4();
+        this.senderId = senderId;
+        this.receiverId = receiverId;
+        this.content = content;
+        this.read = readStatus;
+        this.createdAt = new Date().toISOString();
+    }
+}
+
 let users = [];
 let jobs = [];
 let applications = [];
@@ -135,6 +149,7 @@ let interviews = [];
 // Add arrays to store the data
 let savedJobs = [];
 let ratings = [];
+let chatMessages = [];
 
 // Configure GitHub OAuth strategy
 passport.use(
@@ -224,6 +239,14 @@ passport.deserializeUser((id, done) => {
 
 app.prepare().then(() => {
     const server = express();
+    const httpServer = http.createServer(server);
+    const io = socketIO(httpServer, {
+        cors: {
+            origin: "http://localhost:3000",
+            methods: ["GET", "POST"],
+            credentials: true
+        }
+    });
 
     server.use(
         session({
@@ -835,6 +858,43 @@ app.prepare().then(() => {
         );
         notifications.push(notification);
         
+        // If application is accepted, create initial chat messages to establish connection
+        if (status === 'accepted') {
+            // Create system messages for both users to establish chat connection
+            const clientToFreelancerMsg = new ChatMessage(
+                job.client.id, 
+                application.freelancer.id, 
+                `Hello! I've accepted your application for "${job.title}". Let's discuss the details.`,
+                false
+            );
+            
+            const freelancerToClientMsg = new ChatMessage(
+                application.freelancer.id,
+                job.client.id,
+                `Thank you for accepting my application for "${job.title}". I'm looking forward to working with you.`,
+                false
+            );
+            
+            chatMessages.push(clientToFreelancerMsg);
+            chatMessages.push(freelancerToClientMsg);
+            
+            // Create additional notifications to prompt users to check their messages
+            const chatNotificationToFreelancer = new Notification(
+                application.freelancer.id,
+                `You have a new message from ${job.client.username} regarding "${job.title}"`,
+                'message'
+            );
+            
+            const chatNotificationToClient = new Notification(
+                job.client.id,
+                `Chat has been established with ${application.freelancer.username} for "${job.title}"`,
+                'message'
+            );
+            
+            notifications.push(chatNotificationToFreelancer);
+            notifications.push(chatNotificationToClient);
+        }
+        
         res.json({ message: 'Application status updated', application });
     });
 
@@ -888,8 +948,42 @@ app.prepare().then(() => {
             applications[applicationIndex] = application;
             
             notificationMessage = `Interview scheduled for "${job.title}" on ${new Date(dateTime).toLocaleString()}. ${message || ''}`;
+            
+            // Create a system message about the interview
+            const interviewChatMsg = new ChatMessage(
+                job.client.id,
+                application.freelancer.id,
+                `I've scheduled an interview for "${job.title}" on ${new Date(dateTime).toLocaleString()}. ${message ? `Additional info: ${message}` : ''}`,
+                false
+            );
+            chatMessages.push(interviewChatMsg);
         } else {
             notificationMessage = `Your application for "${job.title}" has been accepted. The employer will schedule an interview soon.`;
+            
+            // Create initial chat messages to establish connection if they don't exist already
+            const existingChat = chatMessages.some(msg => 
+                (msg.senderId === job.client.id && msg.receiverId === application.freelancer.id) || 
+                (msg.senderId === application.freelancer.id && msg.receiverId === job.client.id)
+            );
+            
+            if (!existingChat) {
+                const clientToFreelancerMsg = new ChatMessage(
+                    job.client.id, 
+                    application.freelancer.id, 
+                    `Hello! I've accepted your application for "${job.title}". We'll schedule an interview soon.`,
+                    false
+                );
+                
+                const freelancerToClientMsg = new ChatMessage(
+                    application.freelancer.id,
+                    job.client.id,
+                    `Thank you for accepting my application for "${job.title}". I'm looking forward to the interview.`,
+                    false
+                );
+                
+                chatMessages.push(clientToFreelancerMsg);
+                chatMessages.push(freelancerToClientMsg);
+            }
         }
         
         const notification = new Notification(
@@ -898,6 +992,14 @@ app.prepare().then(() => {
             'interview-scheduled'
         );
         notifications.push(notification);
+        
+        // Also create a chat notification
+        const chatNotification = new Notification(
+            application.freelancer.id,
+            `You have a new message from ${job.client.username} regarding "${job.title}"`,
+            'message'
+        );
+        notifications.push(chatNotification);
         
         res.json({ 
             message: 'Application accepted and interview ' + (scheduleNow ? 'scheduled' : 'pending'), 
@@ -1277,12 +1379,203 @@ app.prepare().then(() => {
         });
     });
 
+    // Chat routes
+    server.get('/api/chat/history/:userId', isAuthenticated, (req, res) => {
+        const currentUserId = req.user.id;
+        const otherUserId = req.params.userId;
+        
+        // Get messages between these two users
+        const messages = chatMessages.filter(msg => 
+            (msg.senderId === currentUserId && msg.receiverId === otherUserId) || 
+            (msg.senderId === otherUserId && msg.receiverId === currentUserId)
+        );
+        
+        // Sort by date
+        messages.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+        
+        res.json(messages);
+    });
+
+    // Get all user's chats (conversations)
+    server.get('/api/chat/conversations', isAuthenticated, (req, res) => {
+        const currentUserId = req.user.id;
+        
+        // Find all unique users this user has chatted with
+        const userMessages = chatMessages.filter(msg => 
+            msg.senderId === currentUserId || msg.receiverId === currentUserId
+        );
+        
+        // Get unique user IDs from messages
+        const userIds = new Set();
+        userMessages.forEach(msg => {
+            if (msg.senderId !== currentUserId) userIds.add(msg.senderId);
+            if (msg.receiverId !== currentUserId) userIds.add(msg.receiverId);
+        });
+        
+        // Get user details and last message for each conversation
+        const conversations = Array.from(userIds).map(userId => {
+            const otherUser = users.find(u => u.id === userId);
+            if (!otherUser) return null;
+            
+            // Find the most recent message between these users
+            const relevantMessages = userMessages.filter(msg => 
+                (msg.senderId === userId || msg.receiverId === userId)
+            );
+            relevantMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            const lastMessage = relevantMessages[0];
+            
+            // Count unread messages
+            const unreadCount = relevantMessages.filter(
+                msg => msg.senderId === userId && !msg.read
+            ).length;
+            
+            return {
+                userId: otherUser.id,
+                username: otherUser.username,
+                profilePicture: otherUser.profile?.profilePicture || null,
+                role: otherUser.role,
+                lastMessage: lastMessage ? {
+                    content: lastMessage.content,
+                    createdAt: lastMessage.createdAt,
+                    isFromUser: lastMessage.senderId === currentUserId
+                } : null,
+                unreadCount
+            };
+        }).filter(Boolean);
+        
+        // Sort by most recent message
+        conversations.sort((a, b) => {
+            if (!a.lastMessage) return 1;
+            if (!b.lastMessage) return -1;
+            return new Date(b.lastMessage.createdAt) - new Date(a.lastMessage.createdAt);
+        });
+        
+        res.json(conversations);
+    });
+
+    // Mark messages as read
+    server.post('/api/chat/read/:userId', isAuthenticated, (req, res) => {
+        const currentUserId = req.user.id;
+        const otherUserId = req.params.userId;
+        
+        // Mark messages from other user as read
+        let count = 0;
+        chatMessages.forEach(msg => {
+            if (msg.senderId === otherUserId && msg.receiverId === currentUserId && !msg.read) {
+                msg.read = true;
+                count++;
+            }
+        });
+        
+        res.json({ success: true, count });
+    });
+
+    // Set up Socket.IO connection
+    io.on('connection', (socket) => {
+        console.log('New client connected');
+        let userId = null;
+        
+        // Authenticate the socket connection
+        socket.on('authenticate', (data) => {
+            // In a real app, you would verify the token or session
+            if (data && data.userId) {
+                userId = data.userId;
+                socket.join(userId); // Join a room with the user's ID
+                console.log(`User ${userId} authenticated`);
+            }
+        });
+        
+        // Handle new messages
+        socket.on('send_message', (data) => {
+            if (!userId) return;
+            
+            const { receiverId, content } = data;
+            if (!receiverId || !content) return;
+            
+            const message = new ChatMessage(userId, receiverId, content);
+            chatMessages.push(message);
+            
+            // Send to receiver
+            socket.to(receiverId).emit('receive_message', message);
+            
+            // Send back to sender (for confirmation)
+            socket.emit('message_sent', message);
+        });
+        
+        // Handle typing indicator
+        socket.on('typing', (data) => {
+            if (!userId || !data.receiverId) return;
+            socket.to(data.receiverId).emit('user_typing', { userId });
+        });
+        
+        // Handle stopped typing
+        socket.on('stop_typing', (data) => {
+            if (!userId || !data.receiverId) return;
+            socket.to(data.receiverId).emit('user_stopped_typing', { userId });
+        });
+        
+        // Disconnect
+        socket.on('disconnect', () => {
+            console.log('Client disconnected');
+        });
+    });
+
+    // Search users endpoint for chat
+    server.get('/search-users', isAuthenticated, (req, res) => {
+        const { role, query } = req.query;
+        const currentUserId = req.user.id;
+        
+        // Filter users by role and exclude current user
+        let filteredUsers = users.filter(user => 
+            user.id !== currentUserId && 
+            (role ? user.role === role : true)
+        );
+        
+        // Apply search filter if query is provided
+        if (query) {
+            const searchQuery = query.toLowerCase();
+            filteredUsers = filteredUsers.filter(user => 
+                user.username.toLowerCase().includes(searchQuery) || 
+                user.email.toLowerCase().includes(searchQuery) ||
+                (user.profile?.fullName && user.profile.fullName.toLowerCase().includes(searchQuery))
+            );
+        }
+        
+        // Limit results and return only necessary fields
+        const results = filteredUsers.slice(0, 10).map(user => ({
+            id: user.id,
+            username: user.username,
+            email: user.email || '',
+            fullName: user.profile?.fullName || '',
+            role: user.role,
+            profile: {
+                profilePicture: user.profile?.profilePicture
+            }
+        }));
+        
+        res.json(results);
+    });
+
+    // Add socket status check endpoint
+    server.get('/api/socket-status', (req, res) => {
+        const status = io ? {
+            running: true,
+            connectionsCount: Object.keys(io.sockets.sockets).length,
+            serverStartTime: new Date().toISOString()
+        } : {
+            running: false
+        };
+        
+        res.json(status);
+    });
+
     // Forward all other requests to Next.js
     server.all('*', (req, res) => {
         return handle(req, res);
     });
 
-    server.listen(3000, (err) => {
+    // Change server.listen to httpServer.listen
+    httpServer.listen(3000, (err) => {
         if (err) throw err;
         console.log('> Ready on http://localhost:3000');
     });
