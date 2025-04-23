@@ -18,6 +18,7 @@ const JobForm: React.FC = () => {
   const [autoRenew, setAutoRenew] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [timerDuration, setTimerDuration] = useState(3600); // Default timer in seconds (1 hour)
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
@@ -46,7 +47,7 @@ const JobForm: React.FC = () => {
         skills,
         salaryRange,
         benefits,
-        applicationDeadline,
+        timerDuration, // Include timer duration
         autoRenew,
       };
 
@@ -289,6 +290,22 @@ const JobForm: React.FC = () => {
               required
               disabled={isSubmitting}
             ></textarea>
+          </div>
+          
+          <div>
+            <label htmlFor="timerDuration" className="block text-sm font-medium text-text mb-1">
+              Job Timer (in seconds) <span className="text-accent">*</span>
+            </label>
+            <input
+              type="number"
+              id="timerDuration"
+              value={timerDuration}
+              onChange={(e) => setTimerDuration(Number(e.target.value))}
+              className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
+              placeholder="e.g., 3600 for 1 hour"
+              required
+              disabled={isSubmitting}
+            />
           </div>
           
           <div className="p-4 bg-gray-50 rounded-lg border border-border flex items-center">

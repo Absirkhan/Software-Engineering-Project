@@ -3,6 +3,7 @@ import Navbar from '../Components/navbar';
 import React, { useState, useEffect } from "react";
 import { colors, shadows } from '../Components/colors';
 import Link from 'next/link';
+import JobAlertNotification from '../Components/JobAlertNotification';
 import UpcomingInterviews from '../Components/UpcomingInterviews';
 import { Award } from 'lucide-react';
 
@@ -234,6 +235,7 @@ const FreelancerDashboardPage = () => {
               </h2>
               <UpcomingInterviews userRole="freelancer" />
             </div>
+    
           </div>
         </div>
       </div>

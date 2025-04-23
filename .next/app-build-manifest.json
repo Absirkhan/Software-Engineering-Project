@@ -26,11 +26,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/auth/register/page.js"
     ],
-    "/freelancer_dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/page.js"
-    ],
     "/client_dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -56,20 +51,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/client_dashboard/jobs/[id]/page.js"
     ],
-    "/freelancer_dashboard/searchjob/page": [
+    "/client_dashboard/jobs/edit/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/searchjob/page.js"
+      "static/chunks/app/client_dashboard/jobs/edit/[id]/page.js"
     ],
-    "/freelancer_dashboard/searchjob/[id]/page": [
+    "/client_dashboard/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/searchjob/[id]/page.js"
-    ],
-    "/freelancer_dashboard/profile/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/profile/page.js"
+      "static/chunks/app/client_dashboard/profile/page.js"
     ]
   }
 }

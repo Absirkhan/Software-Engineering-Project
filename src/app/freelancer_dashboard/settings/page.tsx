@@ -1,7 +1,7 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
-import { Shield, Bell, Save } from 'lucide-react';
+import { Shield, Bell, Save, Plus, X } from 'lucide-react';
 import NotificationList from "../../Components/NotificationList";
 
 const SettingsPage = () => {
@@ -14,6 +14,11 @@ const SettingsPage = () => {
     marketingEmails: false
   });
   const [successMessage, setSuccessMessage] = useState("");
+  const [alertPreferences, setAlertPreferences] = useState({ 
+    skills: [] as string[], 
+    enabled: true 
+  });
+  const [newSkill, setNewSkill] = useState("");
 
   const items = [
     { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
@@ -37,6 +42,13 @@ const SettingsPage = () => {
           // If user has settings in their data, use those
           if (userData.settings) {
             setSettings(userData.settings);
+          }
+
+          // Fetch alert preferences
+          const prefsResponse = await fetch("/get-alert-preferences");
+          if (prefsResponse.ok) {
+            const prefsData = await prefsResponse.json();
+            setAlertPreferences(prefsData);
           }
         }
       } catch (error) {
@@ -71,6 +83,50 @@ const SettingsPage = () => {
       setTimeout(() => setSuccessMessage(""), 3000);
     } catch (error) {
       console.error("Error saving settings:", error);
+    }
+  };
+
+  const handleAddSkill = () => {
+    if (newSkill.trim() && !alertPreferences.skills.includes(newSkill.trim())) {
+      setAlertPreferences(prev => ({
+        ...prev,
+        skills: [...prev.skills, newSkill.trim()]
+      }));
+      setNewSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    setAlertPreferences(prev => ({
+      ...prev,
+      skills: prev.skills.filter(s => s !== skill)
+    }));
+  };
+
+  const handleToggleAlerts = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setAlertPreferences(prev => ({
+      ...prev,
+      enabled: e.target.checked
+    }));
+  };
+
+  const saveAlertPreferences = async () => {
+    try {
+      const response = await fetch("/update-alert-preferences", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(alertPreferences)
+      });
+      
+      if (response.ok) {
+        setSuccessMessage("Job alert preferences saved successfully");
+        alert("Job alert preferences saved successfully");
+        setTimeout(() => setSuccessMessage(""), 3000);
+      } else {
+        throw new Error("Failed to save preferences");
+      }
+    } catch (error) {
+      console.error("Error saving job alert preferences:", error);
     }
   };
 
@@ -109,6 +165,10 @@ const SettingsPage = () => {
                     <a href="#notifications" className="flex items-center px-3 py-2 text-sm font-medium rounded-lg bg-gray-100 text-secondary">
                       <Bell size={16} className="mr-3" />
                       Notifications
+                    </a>
+                    <a href="#jobAlerts" className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-textLight hover:bg-gray-50 hover:text-secondary">
+                      <Bell size={16} className="mr-3" />
+                      Job Alerts
                     </a>
                     <a href="#security" className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-textLight hover:bg-gray-50 hover:text-secondary">
                       <Shield size={16} className="mr-3" />
@@ -202,6 +262,77 @@ const SettingsPage = () => {
                     >
                       <Save size={16} className="mr-2" />
                       Save Preferences
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div id="jobAlerts" className="bg-white rounded-xl shadow-card p-6 mb-6">
+                <h2 className="text-xl font-semibold text-text mb-4 flex items-center">
+                  <Bell size={18} className="mr-2 text-secondary" />
+                  Job Alert Preferences
+                </h2>
+                
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-medium text-text">Real-Time Job Alerts</h3>
+                      <p className="text-xs text-textLight">Receive instant notifications when jobs matching your skills are posted</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        checked={alertPreferences.enabled}
+                        onChange={handleToggleAlerts}
+                        className="sr-only peer" 
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
+                    </label>
+                  </div>
+                  
+                  <div>
+                    <h3 className="text-sm font-medium text-text mb-2">Skills for Job Alerts</h3>
+                    <p className="text-xs text-textLight mb-3">You'll receive alerts when jobs requiring these skills are posted</p>
+                    
+                    <div className="flex flex-wrap gap-2 mb-4">
+                      {alertPreferences.skills.map((skill, index) => (
+                        <div key={index} className="flex items-center bg-gray-100 rounded-full py-1 px-3">
+                          <span className="text-sm text-text">{skill}</span>
+                          <button 
+                            onClick={() => handleRemoveSkill(skill)}
+                            className="ml-2 text-gray-500 hover:text-red-500"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    
+                    <div className="flex">
+                      <input 
+                        type="text"
+                        value={newSkill}
+                        onChange={(e) => setNewSkill(e.target.value)}
+                        placeholder="Add a skill (e.g., JavaScript, React)"
+                        className="flex-1 px-3 py-2 text-sm border border-border rounded-l-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                        onKeyPress={(e) => e.key === 'Enter' && handleAddSkill()}
+                      />
+                      <button 
+                        onClick={handleAddSkill}
+                        className="px-3 py-2 bg-secondary text-white rounded-r-lg font-medium text-sm hover:bg-buttonHover transition-all"
+                      >
+                        <Plus size={16} />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-4 border-t border-border mt-6">
+                    <button 
+                      onClick={saveAlertPreferences}
+                      className="px-4 py-2 bg-secondary text-white rounded-lg font-medium text-sm hover:bg-buttonHover transition-all flex items-center"
+                    >
+                      <Save size={16} className="mr-2" />
+                      Save Alert Preferences
                     </button>
                   </div>
                 </div>

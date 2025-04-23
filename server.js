@@ -43,7 +43,7 @@ class User {
 }
 
 class Job {
-    constructor(title, description, type, location, qualifications, experience, skills, salaryRange, benefits, applicationDeadline, autoRenew, client) {
+    constructor(title, description, type, location, qualifications, experience, skills, salaryRange, benefits, timerDuration, autoRenew, client) {
         this.id = uuidv4();
         this.title = title;
         this.description = description;
@@ -54,10 +54,11 @@ class Job {
         this.skills = skills;
         this.salaryRange = salaryRange;
         this.benefits = benefits;
-        this.applicationDeadline = applicationDeadline;
+        this.timerDuration = timerDuration; // Timer in seconds
         this.autoRenew = autoRenew;
         this.client = client;
         this.createdAt = new Date().toISOString();
+        this.expiryTime = new Date(Date.now() + timerDuration * 1000).toISOString(); // Calculate expiry time
         this.applications = [];
         this.status = 'active'; // active, closed, filled
         this.applyClicks = 0; // New property to track apply button clicks
@@ -521,7 +522,7 @@ app.prepare().then(() => {
                 req.body.skills || [], // Ensure skills is an array
                 req.body.salaryRange,
                 req.body.benefits,
-                req.body.applicationDeadline,
+                req.body.timerDuration, // Pass timer duration
                 req.body.autoRenew,
                 {
                     id: req.user.id,
@@ -530,6 +531,56 @@ app.prepare().then(() => {
                 }
             );
             jobs.push(job);
+
+            // Notify users whose alert preferences match at least 50% of the job's skills
+            const jobSkills = job.skills.map(skill => skill.toLowerCase());
+            
+            // First collect all users who should receive notifications
+            const usersToNotify = [];
+            
+            users.forEach(user => {
+                if (user.alertPreferences?.enabled && user.alertPreferences.skills?.length > 0) {
+                    const userSkills = user.alertPreferences.skills.map(skill => skill.toLowerCase());
+                    const matchingSkills = userSkills.filter(skill => jobSkills.includes(skill));
+                    const matchPercentage = (matchingSkills.length / jobSkills.length) * 100;
+
+                    if (matchPercentage >= 50) {
+                        // Make sure we don't have an existing notification for this user and job
+                        const hasExistingNotification = notifications.some(n => 
+                            n.userId === user.id &&
+                            n.type === 'job-alert' &&
+                            n.message.includes(job.title)
+                        );
+                        
+                        if (!hasExistingNotification) {
+                            usersToNotify.push({
+                                user,
+                                matchingSkills
+                            });
+                        }
+                    }
+                }
+            });
+    
+            // Now create notifications for collected users
+            usersToNotify.forEach(({ user, matchingSkills }) => {
+                const notification = new Notification(
+                    user.id,
+                    `A new job "${job.title}" matches your skills (${matchingSkills.join(', ')})`,
+                    'job-alert'
+                );
+                
+                notifications.push(notification);
+                console.log("go");
+
+                // Send real-time notification via WebSocket
+                io.to(user.id).emit('job_alert', { 
+                    message: notification.message,
+                    jobId: job.id,
+                    jobTitle: job.title
+                });
+            });
+
             res.status(201).json({ message: 'Job created successfully', job });
         } else {
             res.status(403).json({ error: 'Only clients can create jobs' });
@@ -680,7 +731,7 @@ app.prepare().then(() => {
                 res.status(201).json({ message: 'Application submitted successfully', application });
             } catch (error) {
                 console.error("Error in application submission:", error);
-                // Clean up uploaded files on error
+                // Clean up uploaded files on error 
                 if (req.files) {
                     Object.values(req.files).forEach(files => {
                         files.forEach(file => {
@@ -723,7 +774,6 @@ app.prepare().then(() => {
                 
                 return false;
             });
-            
             hasAccess = application !== undefined;
         }
         
@@ -783,7 +833,6 @@ app.prepare().then(() => {
                     coverLetterFilePath: app.coverLetterFilePath
                 };
             });
-            
             res.json(enrichedApplications);
         } else {
             res.status(403).json({ error: 'Unauthorized' });
@@ -815,7 +864,6 @@ app.prepare().then(() => {
                     coverLetterFilePath: app.coverLetterFilePath
                 };
             });
-            
             res.json(enrichedApplications);
         } else {
             res.status(403).json({ error: 'You do not have permission to view these applications' });
@@ -847,7 +895,7 @@ app.prepare().then(() => {
         if (req.user.role !== 'client' || job.client.id !== req.user.id) {
             return res.status(403).json({ error: 'You do not have permission to update this application' });
         }
-        
+            
         application.status = status;
         applications[applicationIndex] = application;
         
@@ -875,7 +923,6 @@ app.prepare().then(() => {
                 `Thank you for accepting my application for "${job.title}". I'm looking forward to working with you.`,
                 false
             );
-            
             chatMessages.push(clientToFreelancerMsg);
             chatMessages.push(freelancerToClientMsg);
             
@@ -891,7 +938,6 @@ app.prepare().then(() => {
                 `Chat has been established with ${application.freelancer.username} for "${job.title}"`,
                 'message'
             );
-            
             notifications.push(chatNotificationToFreelancer);
             notifications.push(chatNotificationToClient);
         }
@@ -929,7 +975,7 @@ app.prepare().then(() => {
         
         // Create notification for the freelancer
         let notificationMessage;
-        
+        // Create a system message about the interview
         if (scheduleNow && dateTime) {
             // Create a new interview
             const interview = new Interview(
@@ -940,7 +986,6 @@ app.prepare().then(() => {
                 dateTime,
                 message
             );
-            
             interviews.push(interview);
             
             // Update application with interview details
@@ -966,7 +1011,6 @@ app.prepare().then(() => {
                 (msg.senderId === job.client.id && msg.receiverId === application.freelancer.id) || 
                 (msg.senderId === application.freelancer.id && msg.receiverId === job.client.id)
             );
-            
             if (!existingChat) {
                 const clientToFreelancerMsg = new ChatMessage(
                     job.client.id, 
@@ -1002,15 +1046,11 @@ app.prepare().then(() => {
         );
         notifications.push(chatNotification);
         
-        res.json({ 
-            message: 'Application accepted and interview ' + (scheduleNow ? 'scheduled' : 'pending'), 
-            application 
-        });
+        res.json({ message: 'Application accepted and interview ' + (scheduleNow ? 'scheduled' : 'pending'), application });
     });
 
     server.get('/get-interviews', isAuthenticated, (req, res) => {
         let userInterviews;
-        
         if (req.user.role === 'client') {
             // Get interviews where this user is the client
             userInterviews = interviews.filter(interview => interview.clientId === req.user.id);
@@ -1032,7 +1072,7 @@ app.prepare().then(() => {
     });
 
     server.post('/mark-notification-read/:id', isAuthenticated, (req, res) => {
-        const notificationId = req.params.id;
+        const notificationId = req.params.id; 
         const notificationIndex = notifications.findIndex(
             n => n.id === notificationId && n.userId === req.user.id
         );
@@ -1083,7 +1123,6 @@ app.prepare().then(() => {
                 email: user.email,
                 profile: user.profile || {}
             };
-            
             res.json(companyData);
         } else {
             res.status(404).json({ error: 'Company not found' });
@@ -1119,7 +1158,6 @@ app.prepare().then(() => {
         const userId = req.user.id;
         
         const index = savedJobs.findIndex(sj => sj.jobId === jobId && sj.userId === userId);
-        
         if (index === -1) {
             return res.status(404).json({ error: 'Saved job not found' });
         }
@@ -1139,19 +1177,15 @@ app.prepare().then(() => {
                 job
             };
         });
-        
         res.json(enrichedSavedJobs);
     });
 
     server.get('/is-job-saved/:id', isAuthenticated, (req, res) => {
         const jobId = req.params.id;
         const userId = req.user.id;
-        
         const isSaved = savedJobs.some(sj => sj.jobId === jobId && sj.userId === userId);
         res.json({ isSaved });
     });
-
-    
 
     // Routes for ratings and reviews
     server.post('/rate-client/:clientId', isAuthenticated, (req, res) => {
@@ -1187,7 +1221,6 @@ app.prepare().then(() => {
             // Update existing rating
             existingRating.stars = stars;
             existingRating.comment = comment;
-            
             return res.json({ 
                 message: 'Rating updated successfully', 
                 rating: existingRating 
@@ -1203,7 +1236,6 @@ app.prepare().then(() => {
             stars,
             comment
         );
-        
         ratings.push(rating);
         
         // Create notification for the client
@@ -1292,6 +1324,9 @@ app.prepare().then(() => {
             };
         });
         
+        // Sort by date (most recent first)
+        enrichedRatings.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        
         res.json(enrichedRatings);
     });
 
@@ -1305,7 +1340,6 @@ app.prepare().then(() => {
         
         // Check if user has a complete profile (implement your calculation logic here)
         const profileComplete = calculateProfileCompletion(req.user.profile) === 100;
-        
         if (profileComplete) {
             badges.push({
                 id: 'profile_star',
@@ -1323,7 +1357,7 @@ app.prepare().then(() => {
     // Helper function to calculate profile completion percentage
     function calculateProfileCompletion(profile) {
         if (!profile) return 0;
-        
+
         const requiredFields = [
             'fullName',
             'bio',
@@ -1334,7 +1368,6 @@ app.prepare().then(() => {
         ];
         
         let completedFields = 0;
-        
         for (const field of requiredFields) {
             if (Array.isArray(field)) {
                 // Handle nested fields like contactInfo.phone
@@ -1384,7 +1417,7 @@ app.prepare().then(() => {
     server.get('/api/chat/history/:userId', isAuthenticated, (req, res) => {
         const currentUserId = req.user.id;
         const otherUserId = req.params.userId;
-        
+         
         // Get messages between these two users
         const messages = chatMessages.filter(msg => 
             (msg.senderId === currentUserId && msg.receiverId === otherUserId) || 
@@ -1417,7 +1450,6 @@ app.prepare().then(() => {
         const conversations = Array.from(userIds).map(userId => {
             const otherUser = users.find(u => u.id === userId);
             if (!otherUser) return null;
-            
             // Find the most recent message between these users
             const relevantMessages = userMessages.filter(msg => 
                 (msg.senderId === userId || msg.receiverId === userId)
@@ -1485,7 +1517,7 @@ app.prepare().then(() => {
                 console.log(`User ${userId} authenticated`);
             }
         });
-        
+
         // Handle new messages
         socket.on('send_message', (data) => {
             if (!userId) return;
@@ -1502,19 +1534,19 @@ app.prepare().then(() => {
             // Send back to sender (for confirmation)
             socket.emit('message_sent', message);
         });
-        
+
         // Handle typing indicator
         socket.on('typing', (data) => {
             if (!userId || !data.receiverId) return;
             socket.to(data.receiverId).emit('user_typing', { userId });
         });
-        
+
         // Handle stopped typing
         socket.on('stop_typing', (data) => {
             if (!userId || !data.receiverId) return;
             socket.to(data.receiverId).emit('user_stopped_typing', { userId });
         });
-        
+
         // Disconnect
         socket.on('disconnect', () => {
             console.log('Client disconnected');
@@ -1566,7 +1598,6 @@ app.prepare().then(() => {
         } : {
             running: false
         };
-        
         res.json(status);
     });
 
@@ -1583,6 +1614,43 @@ app.prepare().then(() => {
         res.json({ message: 'Apply clicks incremented', applyClicks: job.applyClicks });
     });
 
+    // Route to update job alert preferences
+    server.post('/update-alert-preferences', isAuthenticated, (req, res) => {
+        const { enabled, skills } = req.body;
+
+        if (!req.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+
+        // Validate the input
+        if (typeof enabled !== 'boolean' || !Array.isArray(skills)) {
+            return res.status(400).json({ error: 'Invalid input format' });
+        }
+
+        // Update the user's alert preferences
+        req.user.alertPreferences = {
+            enabled,
+            skills: skills.map(skill => skill.trim()).filter(skill => skill !== '')
+        };
+
+        // Update the user in the users array
+        const userIndex = users.findIndex(u => u.id === req.user.id);
+        if (userIndex !== -1) {
+            users[userIndex].alertPreferences = req.user.alertPreferences;
+        }
+
+        res.json({ message: 'Alert preferences updated successfully', alertPreferences: req.user.alertPreferences });
+    });
+
+    // Route to get job alert preferences
+    server.get('/get-alert-preferences', isAuthenticated, (req, res) => {
+        if (!req.user) {
+            return res.status(401).json({ error: 'User not authenticated' });
+        }
+        const alertPreferences = req.user.alertPreferences || { enabled: true, skills: [] };
+        res.json(alertPreferences);
+    });
+
     // Forward all other requests to Next.js
     server.all('*', (req, res) => {
         return handle(req, res);
@@ -1594,3 +1662,17 @@ app.prepare().then(() => {
         console.log('> Ready on http://localhost:3000');
     });
 });
+
+// Periodic job cleanup
+setInterval(() => {
+    const now = new Date();
+    jobs = jobs.filter(job => {
+        if (job.autoRenew) return true; // Skip auto-renew jobs
+        if (new Date(job.expiryTime) > now) return true; // Skip non-expired jobs
+
+        // Remove expired job
+        console.log(`Job ${job.id} expired and removed.`);
+        applications = applications.filter(app => app.jobId !== job.id); // Remove related applications
+        return false;
+    });
+}, 60000); // Run every minute
