@@ -36,15 +36,25 @@
       "static/chunks/main-app.js",
       "static/chunks/app/client_dashboard/page.js"
     ],
+    "/client_dashboard/createjob/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client_dashboard/createjob/page.js"
+    ],
     "/client_dashboard/jobs/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/client_dashboard/jobs/page.js"
     ],
-    "/client_dashboard/createjob/page": [
+    "/client_dashboard/jobs/[id]/applications/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/createjob/page.js"
+      "static/chunks/app/client_dashboard/jobs/[id]/applications/page.js"
+    ],
+    "/client_dashboard/jobs/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client_dashboard/jobs/[id]/page.js"
     ],
     "/freelancer_dashboard/searchjob/page": [
       "static/chunks/webpack.js",
@@ -56,45 +66,10 @@
       "static/chunks/main-app.js",
       "static/chunks/app/freelancer_dashboard/searchjob/[id]/page.js"
     ],
-    "/client_dashboard/jobs/[id]/applications/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/jobs/[id]/applications/page.js"
-    ],
-    "/freelancer_dashboard/applications/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/applications/page.js"
-    ],
-    "/freelancer_dashboard/settings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/settings/page.js"
-    ],
-    "/client_dashboard/settings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/settings/page.js"
-    ],
-    "/chat/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/chat/page.js"
-    ],
     "/freelancer_dashboard/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/freelancer_dashboard/profile/page.js"
-    ],
-    "/freelancer_dashboard/payments/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/freelancer_dashboard/payments/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

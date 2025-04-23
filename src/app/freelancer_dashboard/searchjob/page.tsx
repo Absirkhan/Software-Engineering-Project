@@ -1,7 +1,7 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
-import { Search, Briefcase, MapPin, DollarSign, Filter } from 'lucide-react';
+import { Search, Briefcase, MapPin, DollarSign, Filter, Eye } from 'lucide-react';
 import Link from "next/link";
 import SaveJobButton from "../../Components/SaveJobButton";
 
@@ -86,6 +86,75 @@ const SearchJobPage = () => {
     
     return matchesSearchTerm && matchesType && matchesLocation && matchesSalary;
   });
+
+  const JobCard = ({ job }: { job: any }) => (
+    <div className="bg-white rounded-xl shadow-card p-5">
+      <div className="flex flex-col md:flex-row md:justify-between md:items-start">
+        <div>
+          <h2 className="text-xl font-semibold text-text mb-2">
+            {job.title}
+          </h2>
+          <div className="mb-3">
+            <span className="text-sm text-textLight">{job.client?.username || 'Unknown Company'}</span>
+          </div>
+          
+          <div className="flex flex-wrap gap-3 mb-3">
+            <div className="flex items-center text-sm text-textLight">
+              <Briefcase size={16} className="mr-1" />
+              {job.type}
+            </div>
+            <div className="flex items-center text-sm text-textLight">
+              <MapPin size={16} className="mr-1" />
+              {job.location}
+            </div>
+            <div className="flex items-center text-sm text-accent">
+              <DollarSign size={16} className="mr-1" />
+              {job.salaryRange}
+            </div>
+          </div>
+        </div>
+        
+        <div className="mt-4 md:mt-0 md:ml-4 flex items-center gap-2">
+          <SaveJobButton jobId={job.id} className="mr-2" />
+          <Link 
+            href={`/freelancer_dashboard/searchjob/${job.id}`}
+            className="px-4 py-2 bg-secondary text-white rounded-lg font-medium text-sm hover:bg-buttonHover transition-all inline-block"
+          >
+            View Details
+          </Link>
+        </div>
+      </div>
+      
+      <div className="mt-4 text-sm text-textLight line-clamp-3">
+        {job.description}
+      </div>
+      
+      <div className="mt-4 pt-4 border-t border-border flex flex-wrap justify-between items-center">
+        <div className="flex flex-wrap gap-2">
+          {job.skills.slice(0, 3).map((skill: string, i: number) => (
+            <span 
+              key={i} 
+              className="px-2 py-1 bg-gray-100 text-textLight text-xs rounded-full"
+            >
+              {skill.trim()}
+            </span>
+          ))}
+          {job.skills.length > 3 && 
+            <span className="px-2 py-1 bg-gray-100 text-textLight text-xs rounded-full">
+              +{job.skills.length - 3} more
+            </span>
+          }
+        </div>
+        <div className="text-xs text-textLight mt-2 md:mt-0">
+          Deadline: {formatDate(job.applicationDeadline)}
+        </div>
+      </div>
+      <div className="flex items-center text-sm text-textLight mt-2">
+        <Eye size={16} className="mr-1" />
+        {job.applyClicks} clicks
+      </div>
+    </div>
+  );
 
   return (
     <div className="flex flex-col h-screen">
@@ -193,68 +262,7 @@ const SearchJobPage = () => {
           ) : filteredJobs.length > 0 ? (
             <div className="grid grid-cols-1 gap-6">
               {filteredJobs.map((job, index) => (
-                <div key={index} className="bg-white rounded-xl shadow-card p-5">
-                  <div className="flex flex-col md:flex-row md:justify-between md:items-start">
-                    <div>
-                      <h2 className="text-xl font-semibold text-text mb-2">
-                        {job.title}
-                      </h2>
-                      <div className="mb-3">
-                        <span className="text-sm text-textLight">{job.client?.username || 'Unknown Company'}</span>
-                      </div>
-                      
-                      <div className="flex flex-wrap gap-3 mb-3">
-                        <div className="flex items-center text-sm text-textLight">
-                          <Briefcase size={16} className="mr-1" />
-                          {job.type}
-                        </div>
-                        <div className="flex items-center text-sm text-textLight">
-                          <MapPin size={16} className="mr-1" />
-                          {job.location}
-                        </div>
-                        <div className="flex items-center text-sm text-accent">
-                          <DollarSign size={16} className="mr-1" />
-                          {job.salaryRange}
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4 md:mt-0 md:ml-4 flex items-center gap-2">
-                      <SaveJobButton jobId={job.id} className="mr-2" />
-                      <Link 
-                        href={`/freelancer_dashboard/searchjob/${job.id}`}
-                        className="px-4 py-2 bg-secondary text-white rounded-lg font-medium text-sm hover:bg-buttonHover transition-all inline-block"
-                      >
-                        View Details
-                      </Link>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 text-sm text-textLight line-clamp-3">
-                    {job.description}
-                  </div>
-                  
-                  <div className="mt-4 pt-4 border-t border-border flex flex-wrap justify-between items-center">
-                    <div className="flex flex-wrap gap-2">
-                      {job.skills.split(',').slice(0, 3).map((skill: string, i: number) => (
-                        <span 
-                          key={i} 
-                          className="px-2 py-1 bg-gray-100 text-textLight text-xs rounded-full"
-                        >
-                          {skill.trim()}
-                        </span>
-                      ))}
-                      {job.skills.split(',').length > 3 && 
-                        <span className="px-2 py-1 bg-gray-100 text-textLight text-xs rounded-full">
-                          +{job.skills.split(',').length - 3} more
-                        </span>
-                      }
-                    </div>
-                    <div className="text-xs text-textLight mt-2 md:mt-0">
-                      Deadline: {formatDate(job.applicationDeadline)}
-                    </div>
-                  </div>
-                </div>
+                <JobCard key={index} job={job} />
               ))}
             </div>
           ) : (

@@ -20,19 +20,28 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ jobId, onSucces
   const jobSpecificResumeRef = useRef<HTMLInputElement | null>(null);
   const coverLetterFileRef = useRef<HTMLInputElement | null>(null);
 
+  const handleApplyClick = async () => {
+    try {
+        await fetch(`/increment-apply-clicks/${jobId}`, { method: 'POST' });
+    } catch (error) {
+        console.error('Error incrementing apply clicks:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
 
-    // Validate file uploads
-    if (!genericResumeFile) {
-      setError("Generic resume is required");
-      setIsSubmitting(false);
-      return;
-    }
-
     try {
+      await handleApplyClick(); // Increment apply clicks
+      // Validate file uploads
+      if (!genericResumeFile) {
+        setError("Generic resume is required");
+        setIsSubmitting(false);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('coverLetter', coverLetter);
       formData.append('genericResume', genericResumeFile);

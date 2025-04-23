@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { Briefcase, MapPin, Calendar, DollarSign, User, Building, Info } from 'lucide-react';
+import { Briefcase, MapPin, Calendar, DollarSign, User, Building, Info, Eye } from 'lucide-react';
 import CompanyProfileCard from "./CompanyProfileCard";
 import SaveJobButton from './SaveJobButton';
 
@@ -63,6 +63,10 @@ const JobDetail: React.FC<JobDetailProps> = ({
           <Calendar size={16} className="mr-1" /> 
           Apply by {formatDate(job.applicationDeadline)}
         </div>
+        <div className="flex items-center text-sm text-textLight">
+          <Eye size={16} className="mr-1" />
+          {job.applyClicks} clicks
+        </div>
       </div>
       
       {job.client && (
@@ -111,7 +115,16 @@ const JobDetail: React.FC<JobDetailProps> = ({
         
         <div>
           <h3 className="text-md font-semibold text-text mb-2">Skills</h3>
-          <p className="text-sm text-textLight whitespace-pre-line">{job.skills}</p>
+          <div className="flex flex-wrap gap-2">
+            {job.skills.map((skill: string, index: number) => (
+              <span 
+                key={index} 
+                className="px-2 py-1 bg-gray-100 text-textLight text-xs rounded-full"
+              >
+                {skill.trim()}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       

@@ -10,13 +10,25 @@ const JobForm: React.FC = () => {
   const [location, setLocation] = useState("");
   const [qualifications, setQualifications] = useState("");
   const [experience, setExperience] = useState("");
-  const [skills, setSkills] = useState("");
+  const [skills, setSkills] = useState<string[]>([]);
+  const [newSkill, setNewSkill] = useState("");
   const [salaryRange, setSalaryRange] = useState("");
   const [benefits, setBenefits] = useState("");
   const [applicationDeadline, setApplicationDeadline] = useState("");
   const [autoRenew, setAutoRenew] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+
+  const handleAddSkill = () => {
+    if (newSkill.trim() && !skills.includes(newSkill.trim())) {
+      setSkills([...skills, newSkill.trim()]);
+      setNewSkill("");
+    }
+  };
+
+  const handleRemoveSkill = (skill: string) => {
+    setSkills(skills.filter((s) => s !== skill));
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,7 +61,7 @@ const JobForm: React.FC = () => {
       if (response.ok) {
         const result = await response.json();
         console.log("Job submitted successfully:", result);
-        router.push("/client_dashboard/jobs"); // Redirect to jobs page instead of dashboard
+        router.push("/client_dashboard/jobs");
       } else {
         const errorData = await response.json().catch(() => null);
         setError(errorData?.message || "Failed to submit job. Please try again.");
@@ -187,16 +199,46 @@ const JobForm: React.FC = () => {
               <label htmlFor="skills" className="block text-sm font-medium text-text mb-1">
                 Skills <span className="text-accent">*</span>
               </label>
-              <textarea
-                id="skills"
-                value={skills}
-                onChange={(e) => setSkills(e.target.value)}
-                className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
-                placeholder="e.g., JavaScript, React, Node.js"
-                rows={2}
-                required
-                disabled={isSubmitting}
-              ></textarea>
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  id="skills"
+                  value={newSkill}
+                  onChange={(e) => setNewSkill(e.target.value)}
+                  className="flex-1 px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                  placeholder="Add a skill"
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddSkill();
+                    }
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddSkill}
+                  className="px-4 py-2 bg-secondary text-white rounded-lg text-sm hover:bg-buttonHover"
+                >
+                  Add
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2 mt-2">
+                {skills.map((skill, index) => (
+                  <div
+                    key={index}
+                    className="px-3 py-1 bg-gray-100 rounded-full text-sm text-textLight flex items-center"
+                  >
+                    {skill}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveSkill(skill)}
+                      className="ml-2 text-red-500 hover:text-red-700"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
           

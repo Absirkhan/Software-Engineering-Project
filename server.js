@@ -60,6 +60,7 @@ class Job {
         this.createdAt = new Date().toISOString();
         this.applications = [];
         this.status = 'active'; // active, closed, filled
+        this.applyClicks = 0; // New property to track apply button clicks
     }
 }
 
@@ -517,7 +518,7 @@ app.prepare().then(() => {
                 req.body.location,
                 req.body.qualifications,
                 req.body.experience,
-                req.body.skills,
+                req.body.skills || [], // Ensure skills is an array
                 req.body.salaryRange,
                 req.body.benefits,
                 req.body.applicationDeadline,
@@ -1567,6 +1568,19 @@ app.prepare().then(() => {
         };
         
         res.json(status);
+    });
+
+    // Add a new endpoint to increment applyClicks
+    server.post('/increment-apply-clicks/:id', (req, res) => {
+        const jobId = req.params.id;
+        const job = jobs.find(j => j.id === jobId);
+
+        if (!job) {
+            return res.status(404).json({ error: 'Job not found' });
+        }
+
+        job.applyClicks += 1; // Increment the applyClicks count
+        res.json({ message: 'Apply clicks incremented', applyClicks: job.applyClicks });
     });
 
     // Forward all other requests to Next.js
