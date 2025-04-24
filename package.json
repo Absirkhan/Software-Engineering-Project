@@ -21,6 +21,8 @@
     "next": "^15.2.3",
     "passport": "^0.7.0",
     "passport-github2": "^0.1.12",
+    "pg": "^8.15.5",
+    "pg-promise": "^11.13.0",
     "postcss": "^8.4.35",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

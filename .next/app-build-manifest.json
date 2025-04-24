@@ -41,21 +41,6 @@
       "static/chunks/main-app.js",
       "static/chunks/app/client_dashboard/jobs/page.js"
     ],
-    "/client_dashboard/jobs/[id]/applications/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/jobs/[id]/applications/page.js"
-    ],
-    "/client_dashboard/jobs/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/jobs/[id]/page.js"
-    ],
-    "/client_dashboard/jobs/edit/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/jobs/edit/[id]/page.js"
-    ],
     "/client_dashboard/profile/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
