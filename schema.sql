@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
     projects JSONB NOT NULL DEFAULT '[]',
     github_repositories JSONB NOT NULL DEFAULT '[]',
     alert_preferences JSONB DEFAULT '{"enabled": true, "skills": []}',
+    settings JSONB DEFAULT '{}',
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 

@@ -7,6 +7,9 @@ const bodyParser = require('body-parser');
 const axios = require('axios');
 const { v4: uuidv4 } = require('uuid');
 const multer = require('multer');
+const fileUpload = require('express-fileupload');
+const pdfParse = require('pdf-parse');
+const Groq = require('groq-sdk');
 const fs = require('fs');
 const path = require('path');
 const http = require('http');
@@ -18,6 +21,8 @@ const pgPromise = require('pg-promise')();
 const dev = process.env.NODE_ENV !== 'production';
 const app = next({ dev });
 const handle = app.getRequestHandler();
+
+const groq = new Groq({ apiKey: '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' });
 
 // PostgreSQL configuration
 const pgConfig = {
@@ -1416,7 +1421,7 @@ initDatabase()
                     const freelancerToClientMsg = new ChatMessage(
                         application.freelancer.id,
                         job.client.id,
-                        `Thank you for accepting my application for "${job.title}". I'm looking forward to the interview.`,
+                        `Thank you for accepting my application for "${job.title}". I'm looking forward to working with you.`,
                         false
                     );
                     
@@ -1725,6 +1730,49 @@ initDatabase()
             res.status(201).json({ message: 'Rating submitted successfully', rating });
         });
 
+        async function getGroqChatCompletion(query) {
+            return groq.chat.completions.create({
+                messages: [
+                    {
+                        role: "user",
+                        content: query,
+                    },
+                ],
+                model: "llama-3.3-70b-versatile",
+            });
+        }
+        
+        // Middleware for file upload
+        server.use(fileUpload({
+            limits: { fileSize: 50 * 1024 * 1024 }, // Increase limit to 50MB
+            abortOnLimit: true
+        }));
+        server.use(express.static(path.join(__dirname, 'public')));
+        
+        // Endpoint to handle PDF upload and extract text
+        server.post('/extract-text', async (req, res) => {
+            console.log('Received request to extract text from PDF.');
+            if (!req.files || !req.files.pdfFile) {
+                return res.status(400).json({ error: 'No file uploaded.' });
+            }
+        
+            try {
+                const pdfFile = req.files.pdfFile;
+                console.log('Processing file:', pdfFile.name, 'Size:', pdfFile.size);
+                
+                const pdfData = await pdfParse(pdfFile.data);
+                console.log('PDF text extraction successful.');
+                const chatCompletion = await getGroqChatCompletion("what can get better in this resume and give response in 100 words: " + pdfData.text);
+                const responseContent = chatCompletion.choices[0]?.message?.content || "No response";
+                
+                // Send JSON response
+                return res.json({ text: responseContent });
+            } catch (error) {
+                console.error('Error processing PDF:', error);
+                return res.status(500).json({ error: 'Error processing PDF: ' + error.message });
+            }
+        });
+
         server.get('/client-ratings/:clientId', async (req, res) => {
             const clientId = req.params.clientId;
             
@@ -2000,7 +2048,7 @@ initDatabase()
                 }
             });
 
-            // Handle new messages
+            // Handlenew messages
             socket.on('send_message', async (data) => {
                 if (!userId) return;
                 
@@ -2115,34 +2163,34 @@ initDatabase()
         // Route to update job alert preferences
         server.post('/update-alert-preferences', isAuthenticated, async (req, res) => {
             const { enabled, skills } = req.body;
-
+            
             if (!req.user) {
                 return res.status(401).json({ error: 'User not authenticated' });
             }
-
+            
             // Validate the input
             if (typeof enabled !== 'boolean' || !Array.isArray(skills)) {
                 return res.status(400).json({ error: 'Invalid input format' });
             }
-
+            
             // Update the user's alert preferences
             req.user.alertPreferences = {
                 enabled,
                 skills: skills.map(skill => skill.trim()).filter(skill => skill !== '')
             };
-
+            
             // Update the user in the users array
             const userIndex = users.findIndex(u => u.id === req.user.id);
             if (userIndex !== -1) {
                 users[userIndex].alertPreferences = req.user.alertPreferences;
             }
-
+            
             // Update in database
             await pool.query(
                 'UPDATE users SET alert_preferences = $1 WHERE id = $2',
                 [JSON.stringify(req.user.alertPreferences), req.user.id]
             );
-
+            
             res.json({ message: 'Alert preferences updated successfully', alertPreferences: req.user.alertPreferences });
         });
 
@@ -2154,6 +2202,114 @@ initDatabase()
             const alertPreferences = req.user.alertPreferences || { enabled: true, skills: [] };
             res.json(alertPreferences);
         });
+
+        // Route to update notification preferences
+        server.post('/update-notification-preferences', isAuthenticated, async (req, res) => {
+            const notificationPreferences = req.body;
+            
+            if (!req.user) {
+                return res.status(401).json({ error: 'User not authenticated' });
+            }
+            
+            try {
+                // Update user's settings in memory
+                if (!req.user.settings) {
+                    req.user.settings = {};
+                }
+                
+                // Merge in the new notification preferences
+                req.user.settings = {
+                    ...req.user.settings,
+                    ...notificationPreferences
+                };
+                
+                // Update the user in the users array
+                const userIndex = users.findIndex(u => u.id === req.user.id);
+                if (userIndex !== -1) {
+                    users[userIndex].settings = req.user.settings;
+                }
+                
+                // Update in database
+                await pool.query(
+                    'UPDATE users SET settings = $1 WHERE id = $2',
+                    [JSON.stringify(req.user.settings), req.user.id]
+                );
+                
+                res.json({ 
+                    message: 'Notification preferences updated successfully', 
+                    settings: req.user.settings 
+                });
+            } catch (error) {
+                console.error('Error updating notification preferences:', error);
+                res.status(500).json({ error: 'Failed to update notification preferences' });
+            }
+        });
+
+        // Modify the notification creation logic to respect user preferences
+        // Example for a job application notification:
+        const createNotification = (userId, message, type) => {
+            // Find the user
+            const user = users.find(u => u.id === userId);
+            if (!user) return null;
+            
+            // Check if the user has disabled this type of notification
+            const notificationTypes = user.settings?.notificationTypes || {};
+            const notificationChannels = user.settings?.notificationChannels || {};
+            
+            // Determine if we should create the notification based on type and channels
+            let shouldCreateNotification = true;
+            
+            switch (type) {
+                case 'job-application':
+                    shouldCreateNotification = notificationTypes.newApplication !== false;
+                    break;
+                case 'status-update':
+                    shouldCreateNotification = notificationTypes.applicationStatusUpdates !== false;
+                    break;
+                case 'message':
+                    shouldCreateNotification = notificationTypes.messages !== false;
+                    break;
+                case 'interview-scheduled':
+                    shouldCreateNotification = notificationTypes.interviewInvitations !== false;
+                    break;
+                case 'job-alert':
+                    shouldCreateNotification = notificationTypes.newJobMatches !== false;
+                    break;
+                // Add other notification types as needed
+            }
+            
+            // Check if in-app notifications are enabled
+            if (!notificationChannels.inApp) {
+                shouldCreateNotification = false;
+            }
+            
+            if (shouldCreateNotification) {
+                const notification = new Notification(userId, message, type);
+                notifications.push(notification);
+                return notification;
+            }
+            
+            return null;
+        };
+
+        // Then use this function instead of directly creating notifications
+        // For example:
+        // const notification = createNotification(
+        //    job.client.id,
+        //    `New application received for "${job.title}" from ${req.user.username}`,
+        //    'job-application'
+        // );
+        // 
+        // if (notification) {
+        //     // Insert notification into database
+        //     await pool.query(
+        //         'INSERT INTO notifications(id, user_id, message, type, is_read, created_at) VALUES($1, $2, $3, $4, $5, $6)',
+        //         [
+        //             notification.id, notification.userId, notification.message, 
+        //             notification.type, notification.isRead, notification.createdAt
+        //         ]
+        //     );
+        // }
 
         // Forward all other requests to Next.js
         server.all('*', (req, res) => {

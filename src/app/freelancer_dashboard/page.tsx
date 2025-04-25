@@ -332,6 +332,31 @@ const FreelancerDashboardPage = () => {
                 </div>
               </div>
             </div>
+
+            {/* Resume Analysis Tool Link */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hover:shadow-md transition-all duration-300">
+              <div className="px-6 py-5 border-b border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                  <FileText size={18} className="mr-2 text-primary" />
+                  Resume Tools
+                </h2>
+              </div>
+              <div className="p-5">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <h3 className="font-medium text-gray-900 mb-2">Improve Your Resume</h3>
+                  <p className="text-sm text-textLight mb-4">
+                    Get AI-powered feedback on your resume to increase your chances of getting hired.
+                  </p>
+                  <Link 
+                    href="/freelancer_dashboard/resume-analysis"
+                    className="inline-flex items-center text-secondary hover:underline font-medium text-sm"
+                  >
+                    Analyze My Resume
+                    <ArrowRight size={14} className="ml-1.5" />
+                  </Link>
+                </div>
+              </div>
+            </div>
           </div>
           
           {/* Recent Activity Timeline */}
