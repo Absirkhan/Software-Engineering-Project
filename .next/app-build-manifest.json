@@ -21,30 +21,30 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
-    "/auth/register/page": [
+    "/auth/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/auth/register/page.js"
+      "static/chunks/app/auth/login/page.js"
     ],
-    "/client_dashboard/page": [
+    "/freelancer_dashboard/layout": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/page.js"
+      "static/chunks/app/freelancer_dashboard/layout.js"
     ],
-    "/client_dashboard/createjob/page": [
+    "/freelancer_dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/createjob/page.js"
+      "static/chunks/app/freelancer_dashboard/page.js"
     ],
-    "/client_dashboard/jobs/page": [
+    "/freelancer_dashboard/searchjob/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/jobs/page.js"
+      "static/chunks/app/freelancer_dashboard/searchjob/page.js"
     ],
-    "/client_dashboard/profile/page": [
+    "/_not-found/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/client_dashboard/profile/page.js"
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }

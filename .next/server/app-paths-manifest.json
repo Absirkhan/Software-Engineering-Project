@@ -1,8 +1,7 @@
 {
   "/page": "app/page.js",
-  "/auth/register/page": "app/auth/register/page.js",
-  "/client_dashboard/page": "app/client_dashboard/page.js",
-  "/client_dashboard/createjob/page": "app/client_dashboard/createjob/page.js",
-  "/client_dashboard/jobs/page": "app/client_dashboard/jobs/page.js",
-  "/client_dashboard/profile/page": "app/client_dashboard/profile/page.js"
+  "/auth/login/page": "app/auth/login/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/freelancer_dashboard/searchjob/page": "app/freelancer_dashboard/searchjob/page.js",
+  "/freelancer_dashboard/page": "app/freelancer_dashboard/page.js"
 }
