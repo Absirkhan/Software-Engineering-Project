@@ -1,8 +1,12 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
-import { Shield, Bell, Save, Plus, X, AlertCircle, MessageSquare, BriefcaseIcon, Calendar } from 'lucide-react';
+import { Shield, Bell, Save, Plus, X, AlertCircle, MessageSquare, BriefcaseIcon } from 'lucide-react';
 import NotificationList from "../../Components/NotificationList";
+import { Award, ArrowRight, ArrowUp, ArrowDown, Briefcase, Calendar, 
+  DollarSign, Eye, FileText, MapPin, SearchX, Tag, UserCheck, 
+  Activity, CheckCircle, Clock, Send, Star } from 'lucide-react';
+import freelancerRoutes from '../../Components/freelancerRoutes';
 
 const SettingsPage = () => {
   const [user, setUser] = useState<any>(null);
@@ -34,15 +38,7 @@ const SettingsPage = () => {
   });
   const [newSkill, setNewSkill] = useState("");
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Job", icon: "folder", href: "/freelancer_dashboard/searchjob" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = freelancerRoutes;
   
   useEffect(() => {
     const fetchUser = async () => {

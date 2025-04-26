@@ -1,21 +1,12 @@
 "use client";
 import Navbar from "../../Components/navbar";
 import React, { useState } from "react";
-import { CreditCard, Download, DollarSign, Calendar, ArrowRight, Plus } from 'lucide-react';
-
+import { CreditCard, Download, DollarSign, Calendar, ArrowRight, Plus,Check } from 'lucide-react';
+import clientRoutes from "@/app/Components/clientRoutes";
 const PaymentsPage = () => {
   const [activeTab, setActiveTab] = useState("billing");
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
-    { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Applications", icon: "file-text", href: "/client_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = clientRoutes; // Use the imported client routes
 
   // Sample invoice data for demonstration
   const invoices = [

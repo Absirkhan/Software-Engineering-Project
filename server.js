@@ -1750,26 +1750,43 @@ initDatabase()
         server.use(express.static(path.join(__dirname, 'public')));
         
         // Endpoint to handle PDF upload and extract text
-        server.post('/extract-text', async (req, res) => {
-            console.log('Received request to extract text from PDF.');
-            if (!req.files || !req.files.pdfFile) {
-                return res.status(400).json({ error: 'No file uploaded.' });
+        server.post('/analyze-file', async (req, res) => {
+            console.log('Received request to analyze file.');
+            if (!req.files || !req.files.file) {
+            return res.status(400).json({ error: 'No file uploaded.' });
             }
         
             try {
-                const pdfFile = req.files.pdfFile;
-                console.log('Processing file:', pdfFile.name, 'Size:', pdfFile.size);
-                
-                const pdfData = await pdfParse(pdfFile.data);
-                console.log('PDF text extraction successful.');
-                const chatCompletion = await getGroqChatCompletion("what can get better in this resume and give response in 100 words: " + pdfData.text);
-                const responseContent = chatCompletion.choices[0]?.message?.content || "No response";
-                
-                // Send JSON response
-                return res.json({ text: responseContent });
+            const uploadedFile = req.files.file;
+            const analysisType = req.body.type || 'resume'; // Get the analysis type from request
+            console.log('Processing file:', uploadedFile.name, 'Size:', uploadedFile.size, 'Type:', analysisType);
+            
+            // Extract text from PDF
+            const pdfData = await pdfParse(uploadedFile.data);
+            console.log('PDF text extraction successful.');
+            
+            // Generate different prompts based on analysis type
+            let prompt = "";
+            switch (analysisType) {
+                case 'resume':
+                prompt = "What can get better in this resume and give response in 100 words: ";
+                break;
+                case 'cover-letter':
+                prompt = "Review this cover letter and suggest improvements in 100 words: ";
+                break;
+                default:
+                prompt = "Analyze this document and provide feedback in 100 words: ";
+            }
+            
+            // Get AI analysis
+            const chatCompletion = await getGroqChatCompletion(prompt + pdfData.text);
+            const responseContent = chatCompletion.choices[0]?.message?.content || "No response";
+            
+            // Send JSON response
+            return res.json({ text: responseContent });
             } catch (error) {
-                console.error('Error processing PDF:', error);
-                return res.status(500).json({ error: 'Error processing PDF: ' + error.message });
+            console.error('Error processing file:', error);
+            return res.status(500).json({ error: 'Error processing file: ' + error.message });
             }
         });
 

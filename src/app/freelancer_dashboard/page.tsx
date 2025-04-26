@@ -5,21 +5,14 @@ import { colors, shadows } from '../Components/colors';
 import Link from 'next/link';
 import JobAlertNotification from '../Components/JobAlertNotification';
 import UpcomingInterviews from '../Components/UpcomingInterviews';
-import { Award } from 'lucide-react';
-import { ArrowRight, ArrowUp, ArrowDown, Briefcase, Calendar, DollarSign, Eye, FileText, MapPin, SearchX, Tag, UserCheck } from 'lucide-react';
-import { Activity, CheckCircle, Clock, Send } from 'lucide-react';
-import { Star} from 'lucide-react';
+import { Award, ArrowRight, ArrowUp, ArrowDown, Briefcase, Calendar, 
+         DollarSign, Eye, FileText, MapPin, SearchX, Tag, UserCheck, 
+         Activity, CheckCircle, Clock, Send, Star } from 'lucide-react';
+import freelancerRoutes from '../Components/freelancerRoutes';
 
 const FreelancerDashboardPage = () => {
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Jobs", icon: "search", href: "/freelancer_dashboard/searchjob" },
-    { name: "Saved Jobs", icon: "bookmark", href: "/freelancer_dashboard/saved_jobs" },
-    { name: "Applications", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  // Replace the hardcoded freelancerRoutes with the imported routes
+  const items = freelancerRoutes;
   
   const [greet, setGreet] = useState("");
   const [currentTime, setCurrentTime] = useState("");
@@ -126,7 +119,7 @@ const FreelancerDashboardPage = () => {
   };
   
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col h-screen">
       <Navbar initialRole='Freelancer' items={items} />
       
       <div className="flex-1 pt-8 pb-12 px-4 sm:px-6 lg:px-8 font-sans">

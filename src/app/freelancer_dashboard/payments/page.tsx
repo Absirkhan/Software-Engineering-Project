@@ -2,19 +2,12 @@
 import Navbar from "../../Components/navbar";
 import React, { useState } from "react";
 import { CreditCard, Download, DollarSign, Calendar, ArrowRight, Plus } from 'lucide-react';
+import freelancerRoutes from "@/app/Components/freelancerRoutes";
 
 const PaymentsPage = () => {
   const [activeTab, setActiveTab] = useState("transactions");
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Job", icon: "folder", href: "/freelancer_dashboard/searchjob" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = freelancerRoutes; // Use the imported routes for the navbar
 
   // Sample transaction data for demonstration
   const transactions = [

@@ -3,6 +3,7 @@ import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
 import { Eye } from 'lucide-react';
 import JobFilterBar from "../../Components/JobFilterBar";
+import clientRoutes from "@/app/Components/clientRoutes";
 import Link from "next/link";
 
 const JobsPage = () => {
@@ -15,15 +16,7 @@ const JobsPage = () => {
     salary: '', // Added salary filter key
   });
   
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
-    { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Payments", icon: "credit-card", href: "/client/payments" },
-    { name: "Settings", icon: "settings", href: "/client/settings" },
-    { name: "Logout", icon: "logout", href: "/logout" }
-  ];
+  const items = clientRoutes; // Use the imported client routes
   
   useEffect(() => {
     const fetchData = async () => {

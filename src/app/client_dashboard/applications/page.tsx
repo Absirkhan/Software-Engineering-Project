@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import Navbar from "../../Components/navbar";
 import { Search, Filter, FileText, User, Calendar, CheckCircle, XCircle } from "lucide-react";
 import InterviewScheduleModal from "../../Components/InterviewScheduleModal";
+import clientRoutes from "@/app/Components/clientRoutes";
 
 interface Application {
   id: string;
@@ -31,15 +32,7 @@ const ApplicationsPage = () => {
   const [processingId, setProcessingId] = useState<string | null>(null);
   const [showInterviewModal, setShowInterviewModal] = useState(false);
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Jobs", icon: "briefcase", href: "/client_dashboard/jobs" },
-    { name: "Applications", icon: "file", href: "/client_dashboard/applications" },
-    { name: "Messages", icon: "message-square", href: "/client_dashboard/messages" },
-    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
-  ];
+  const items = clientRoutes; // Use the imported routes for the navbar
 
   useEffect(() => {
     const fetchApplications = async () => {

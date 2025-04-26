@@ -2,34 +2,14 @@
 import Navbar from '../Components/navbar';
 import React, { useState, useEffect } from "react";
 import UpcomingInterviews from '../Components/UpcomingInterviews';
-import { Briefcase } from 'lucide-react'; // Replace 'your-icon-library' with the actual library name
-import { ArrowUp } from 'lucide-react';
-import { FileText } from 'lucide-react';
-import { Users } from 'lucide-react';
-import { Eye } from 'lucide-react';
-import { Tag } from 'lucide-react';
-import { ArrowRight } from 'lucide-react';
+import { Briefcase, ArrowUp, FileText, Users, Eye, Tag, ArrowRight, Clock, 
+         UserCheck, Check, AlertCircle, Activity, Calendar, Send, Logout } from 'lucide-react';
 import Link from 'next/link';
-import { Clock } from 'lucide-react';
-import { UserCheck } from 'lucide-react';
-import { Check } from 'lucide-react';
-import { AlertCircle } from 'lucide-react';
-import { Activity } from 'lucide-react';
-import { Calendar } from 'lucide-react';
-import { Send } from 'lucide-react';
-import { Logout } from 'lucide-react';
-
+import clientRoutes from '../Components/clientRoutes';
 
 const ClientDashboard = () => {
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
-    { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Payments", icon: "credit-card", href: "/client/payments" },
-    { name: "Settings", icon: "settings", href: "/client/settings" },
-    { name: "Logout", icon: "logout", href: "/logout" }
-  ];
+  // Remove the hardcoded items array and use the imported routes
+  const items = clientRoutes;
   
   const [greet, setGreet] = useState("");
   const [currentTime, setCurrentTime] = useState("");
@@ -57,7 +37,7 @@ const ClientDashboard = () => {
   }, []);
   
   return (
-    <div className="flex flex-col min-h-screen bg-gray-50">
+    <div className="flex flex-col h-screen">
       <Navbar initialRole='Client' items={items} />
       
       <div className="flex-1 pt-8 pb-12 px-4 sm:px-6 lg:px-8 font-sans">

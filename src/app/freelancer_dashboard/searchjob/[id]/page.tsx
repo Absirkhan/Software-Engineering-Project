@@ -4,6 +4,7 @@ import JobDetail from "../../../Components/JobDetail";
 import JobApplicationForm from "../../../Components/JobApplicationForm";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import freelancerRoutes from "@/app/Components/freelancerRoutes";
 import { ArrowLeft } from "lucide-react";
 
 const JobDetailPage = () => {
@@ -17,15 +18,7 @@ const JobDetailPage = () => {
   const params = useParams();
   const jobId = params?.id as string;
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Jobs", icon: "folder", href: "/freelancer_dashboard/searchjob" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = freelancerRoutes;
   
   useEffect(() => {
     const fetchJob = async () => {

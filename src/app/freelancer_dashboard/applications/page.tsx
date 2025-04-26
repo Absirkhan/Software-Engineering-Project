@@ -5,6 +5,7 @@ import { FileText, CheckCircle, XCircle, Clock, FileX, File, Download } from 'lu
 import Link from 'next/link';
 import RatingStars from "../../Components/RatingStars";
 import RatingModal from "../../Components/RatingModal";
+import freelancerRoutes from "@/app/Components/freelancerRoutes";
 
 interface Application {
   id: string;
@@ -36,15 +37,7 @@ const ApplicationsPage = () => {
   const [selectedClientName, setSelectedClientName] = useState<string>('');
   const [selectedApplicationId, setSelectedApplicationId] = useState<string | null>(null);
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Job", icon: "folder", href: "/freelancer_dashboard/searchjob" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = freelancerRoutes; // Use the imported routes for the navbar
   
   const fetchApplications = async () => {
     setLoading(true);

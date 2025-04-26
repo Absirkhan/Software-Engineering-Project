@@ -3,6 +3,7 @@ import Navbar from "../../../../Components/navbar";
 import React, { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import clientRoutes from "@/app/Components/clientRoutes";
 
 const EditJobPage = () => {
   const router = useRouter();
@@ -25,16 +26,7 @@ const EditJobPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
-    { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Applications", icon: "file-text", href: "/client_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = clientRoutes;
 
   useEffect(() => {
     const fetchJob = async () => {

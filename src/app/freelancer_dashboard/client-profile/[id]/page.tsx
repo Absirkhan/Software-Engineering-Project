@@ -4,6 +4,7 @@ import CompanyRatingReviews from "../../../Components/CompanyRatingReviews";
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { ArrowLeft, Building, MapPin, Globe, Mail, Phone, Star } from 'lucide-react';
+import freelancerRoutes from "@/app/Components/freelancerRoutes";
 import Link from 'next/link';
 
 interface Client {
@@ -25,6 +26,8 @@ interface Client {
   totalReviews?: number;
 }
 
+
+
 const ClientProfilePage = () => {
   const [client, setClient] = useState<Client | null>(null);
   const [loading, setLoading] = useState(true);
@@ -33,16 +36,8 @@ const ClientProfilePage = () => {
   const params = useParams();
   const clientId = params?.id as string;
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Job", icon: "folder", href: "/freelancer_dashboard/searchjob" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
-
+  const items = freelancerRoutes; // Use the imported routes for the navbar
+  
   useEffect(() => {
     const fetchClient = async () => {
       if (!clientId) return;

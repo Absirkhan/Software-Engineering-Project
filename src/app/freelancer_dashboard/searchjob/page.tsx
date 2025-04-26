@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Search, Briefcase, MapPin, DollarSign, Filter, Eye } from 'lucide-react';
 import Link from "next/link";
 import SaveJobButton from "../../Components/SaveJobButton";
+import freelancerRoutes from "../../Components/freelancerRoutes";
 
 const SearchJobPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -16,16 +17,7 @@ const SearchJobPage = () => {
   });
   const [showFilters, setShowFilters] = useState(false);
   
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Jobs", icon: "search", href: "/freelancer_dashboard/searchjob" },
-    { name: "Saved Jobs", icon: "bookmark", href: "/freelancer_dashboard/saved_jobs" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = freelancerRoutes;
   
   useEffect(() => {
     const fetchJobs = async () => {

@@ -3,6 +3,7 @@ import Navbar from "../../Components/navbar";
 import React, { useState, useEffect } from "react";
 import { Shield, Bell, Save, Users, Plus, AlertCircle, MessageSquare, Calendar } from 'lucide-react';
 import NotificationList from "../../Components/NotificationList";
+import clientRoutes from "@/app/Components/clientRoutes";
 
 const SettingsPage = () => {
   const [user, setUser] = useState<any>(null);
@@ -28,15 +29,7 @@ const SettingsPage = () => {
   });
   const [successMessage, setSuccessMessage] = useState("");
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
-    { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  const items = clientRoutes; // Use the imported client routes
   
   useEffect(() => {
     const fetchUser = async () => {

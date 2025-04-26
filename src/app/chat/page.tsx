@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import ChatInterface from '../Components/ChatInterface';
 import Navbar from '../Components/navbar';
 import { Search, UserPlus, MessageSquare, X } from 'lucide-react';
+import clientRoutes from '../Components/clientRoutes';
+import freelancerRoutes from '../Components/freelancerRoutes';
 
 interface User {
   id: string;
@@ -123,16 +125,8 @@ const ChatPage: React.FC = () => {
     fetchUserDetails();
   }, [userId, currentUser, conversations]);
   
-  // Navigation items for the navbar
-  const items = [
-    { name: "Dashboard", icon: "home", href: currentUser?.role === 'client' ? "/client_dashboard" : "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: currentUser?.role === 'client' ? "/client_dashboard/profile" : "/freelancer_dashboard/profile" },
-    { name: "Jobs", icon: "file", href: currentUser?.role === 'client' ? "/client_dashboard/jobs" : "/freelancer_dashboard/searchjob" },
-    { name: "Applications", icon: "folder", href: currentUser?.role === 'client' ? "/client_dashboard/applications" : "/freelancer_dashboard/applications" },
-    { name: "Messages", icon: "message", href: "/chat" },
-    { name: "Settings", icon: "settings", href: currentUser?.role === 'client' ? "/client_dashboard/settings" : "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  // Select appropriate routes based on user role
+  const navItems = currentUser?.role === 'client' ? clientRoutes : freelancerRoutes;
   
   // Add function to search for users
   const searchUsers = async () => {
@@ -181,18 +175,14 @@ const ChatPage: React.FC = () => {
   if (!currentUser) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 bo    function handleSendMessage(chatId: string, message: string): void {
-        throw new Error('Function not implemented.');
-    }
-
-rder-b-2 border-secondary"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-secondary"></div>
       </div>
     );
   }
   
   return (
     <div className="flex flex-col h-screen">
-      <Navbar initialRole={currentUser.role === 'client' ? 'Client' : 'Freelancer'} items={items} />
+      <Navbar initialRole={currentUser.role === 'client' ? 'Client' : 'Freelancer'} items={navItems} />
       
       <div className="flex-1 p-6 bg-gray-50">
         <div className="max-w-7xl mx-auto">

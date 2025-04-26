@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { Camera, Building, MapPin, Globe, Mail, Phone, Award } from 'lucide-react';
 import GitHubRepositories from '../../Components/GitHubRepositories';
 import RatingStars from "../../Components/RatingStars";
+import clientRoutes from "../../Components/clientRoutes";
 
 const ClientProfilePage = () => {
   const [user, setUser] = useState<any>(null);
@@ -15,16 +16,8 @@ const ClientProfilePage = () => {
     totalRatings: 0
   });
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Create Job", icon: "folder", href: "/client_dashboard/createjob" },
-    { name: "All Jobs", icon: "file", href: "/client_dashboard/jobs" },
-    { name: "Applications", icon: "file-text", href: "/client_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  // Replace hardcoded items with imported routes
+  const items = clientRoutes;
   
   useEffect(() => {
     const fetchData = async () => {

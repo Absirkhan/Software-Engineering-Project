@@ -4,6 +4,7 @@ import ProfileForm from "../../Components/ProfileForm";
 import GitHubRepositories from '../../Components/GitHubRepositories';
 import React, { useState, useEffect } from "react";
 import { Camera, MapPin, Globe, Mail, Phone, Briefcase, Award } from 'lucide-react';
+import freelancerRoutes from "../../Components/freelancerRoutes";
 
 const FreelancerProfilePage = () => {
   const [user, setUser] = useState<any>(null);
@@ -11,15 +12,8 @@ const FreelancerProfilePage = () => {
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [hasBadge, setHasBadge] = useState(false);
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Job", icon: "folder", href: "/freelancer_dashboard/searchjob" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Payments", icon: "credit-card", href: "/freelancer_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
+  // Replace hardcoded items with imported routes
+  const items = freelancerRoutes;
   
   useEffect(() => {
     const fetchUser = async () => {

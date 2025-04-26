@@ -7,6 +7,7 @@ const ResumeAnalyzer = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [feedback, setFeedback] = useState("");
+  const [analysisType, setAnalysisType] = useState<'resume' | 'coverLetter'>('resume'); // New state for toggling
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -58,27 +59,28 @@ const ResumeAnalyzer = () => {
     }
   };
 
-  const analyzeResume = async () => {
+  const analyzeFile = async () => {
     if (!file) return;
-    
+
     setLoading(true);
     setError("");
     setFeedback("");
-    
+
     try {
       const formData = new FormData();
-      formData.append('pdfFile', file);
-      
-      const response = await fetch('/extract-text', {
+      formData.append('file', file);
+      formData.append('type', analysisType); // Send the selected type to the server
+
+      const response = await fetch('/analyze-file', {
         method: 'POST',
         body: formData,
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to analyze resume");
+        throw new Error(errorData.error || "Failed to analyze file");
       }
-      
+
       const data = await response.json();
       setFeedback(data.text);
     } catch (err) {
@@ -115,29 +117,49 @@ const ResumeAnalyzer = () => {
       <div className="bg-white rounded-xl shadow-card p-6">
         <h2 className="text-xl font-semibold text-text mb-5 flex items-center">
           <Upload size={20} className="mr-2 text-secondary" />
-          Upload Your Resume
+          Upload Your File
         </h2>
-        
-        <div 
+
+        {/* Toggle Buttons */}
+        <div className="flex justify-center mb-4">
+          <button
+            onClick={() => setAnalysisType('resume')}
+            className={`px-4 py-2 text-sm font-medium rounded-lg ${
+              analysisType === 'resume' ? 'bg-secondary text-white' : 'bg-gray-100 text-textLight'
+            }`}
+          >
+            Analyze Resume
+          </button>
+          <button
+            onClick={() => setAnalysisType('coverLetter')}
+            className={`ml-2 px-4 py-2 text-sm font-medium rounded-lg ${
+              analysisType === 'coverLetter' ? 'bg-secondary text-white' : 'bg-gray-100 text-textLight'
+            }`}
+          >
+            Analyze Cover Letter
+          </button>
+        </div>
+
+        <div
           className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
-            isDragging 
-              ? 'border-secondary bg-secondary/5' 
-              : file 
-                ? 'border-green-500 bg-green-50' 
-                : 'border-gray-300 hover:border-secondary hover:bg-gray-50'
+            isDragging
+              ? 'border-secondary bg-secondary/5'
+              : file
+              ? 'border-green-500 bg-green-50'
+              : 'border-gray-300 hover:border-secondary hover:bg-gray-50'
           }`}
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
         >
-          <input 
+          <input
             type="file"
             ref={fileInputRef}
             onChange={handleFileChange}
             accept=".pdf"
             className="hidden"
           />
-          
+
           {!file ? (
             <div>
               <FileText size={48} className="mx-auto mb-4 text-gray-400" />
@@ -173,7 +195,7 @@ const ResumeAnalyzer = () => {
                 Remove
               </button>
               <button 
-                onClick={analyzeResume}
+                onClick={analyzeFile}
                 className="px-4 py-2 bg-secondary text-white rounded-lg text-sm hover:bg-secondary/90 transition-colors"
                 disabled={loading}
               >
@@ -182,7 +204,7 @@ const ResumeAnalyzer = () => {
                     <RefreshCw size={16} className="mr-2 inline animate-spin" />
                     Analyzing...
                   </>
-                ) : 'Analyze Resume'}
+                ) : `Analyze ${analysisType === 'resume' ? 'Resume' : 'Cover Letter'}`}
               </button>
             </div>
           )}

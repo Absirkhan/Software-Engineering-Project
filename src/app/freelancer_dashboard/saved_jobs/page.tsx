@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Briefcase, MapPin, DollarSign, Calendar, Trash2 } from 'lucide-react';
 import Link from "next/link";
 import SaveJobButton from "../../Components/SaveJobButton";
+import freelancerRoutes from "@/app/Components/freelancerRoutes";
 
 interface SavedJob {
   id: string;
@@ -30,16 +31,8 @@ const SavedJobsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/freelancer_dashboard" },
-    { name: "Profile", icon: "user", href: "/freelancer_dashboard/profile" },
-    { name: "Search Jobs", icon: "search", href: "/freelancer_dashboard/searchjob" },
-    { name: "Saved Jobs", icon: "bookmark", href: "/freelancer_dashboard/saved_jobs" },
-    { name: "Applied Jobs", icon: "file", href: "/freelancer_dashboard/applications" },
-    { name: "Settings", icon: "settings", href: "/freelancer_dashboard/settings" },
-    { name: "Logout", icon: "logout", href: "/auth/logout" }
-  ];
-
+  const items = freelancerRoutes; // Use the imported routes for the navbar
+  
   useEffect(() => {
     const fetchSavedJobs = async () => {
       setLoading(true);

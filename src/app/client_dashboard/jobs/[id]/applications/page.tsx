@@ -4,6 +4,7 @@ import Navbar from "../../../../Components/navbar";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Search, Calendar, User, FileText, CheckCircle, XCircle, File, Download, Award } from "lucide-react";
 import InterviewScheduleModal from "../../../../Components/InterviewScheduleModal";
+import clientRoutes from "@/app/Components/clientRoutes";
 
 interface Application {
   id: string;
@@ -43,15 +44,8 @@ const JobApplicationsPage = () => {
   const router = useRouter();
   const jobId = params?.id as string;
   
-  const items = [
-    { name: "Dashboard", icon: "home", href: "/client_dashboard" },
-    { name: "Profile", icon: "user", href: "/client_dashboard/profile" },
-    { name: "Jobs", icon: "briefcase", href: "/client_dashboard/jobs" },
-    { name: "Applications", icon: "file", href: "/client_dashboard/applications" },
-    { name: "Messages", icon: "message-square", href: "/client_dashboard/messages" },
-    { name: "Payments", icon: "credit-card", href: "/client_dashboard/payments" },
-    { name: "Settings", icon: "settings", href: "/client_dashboard/settings" },
-  ];
+  // Replace hardcoded items with imported routes
+  const items = clientRoutes;
 
   useEffect(() => {
     const fetchData = async () => {
