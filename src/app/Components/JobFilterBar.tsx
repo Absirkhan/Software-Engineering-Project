@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Filter, Search } from 'lucide-react';
 
 interface FilterOption {
@@ -11,8 +11,8 @@ interface FilterOption {
 interface JobFilterBarProps {
   searchTerm: string;
   setSearchTerm: React.Dispatch<React.SetStateAction<string>>;
-  filters: Record<string, string>;
-  setFilters: React.Dispatch<React.SetStateAction<Record<string, string>>>;
+  filters: Record<string, string | number>;
+  setFilters: React.Dispatch<React.SetStateAction<Record<string, string | number>>>;
   filterOptions: FilterOption[];
 }
 
@@ -25,7 +25,7 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
-  const handleFilterChange = (key: string, value: string) => {
+  const handleFilterChange = (key: string, value: string | number) => {
     setFilters(prev => ({
       ...prev,
       [key]: value
@@ -33,12 +33,21 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
   };
 
   const clearFilters = () => {
-    const emptyFilters: Record<string, string> = {};
+    const emptyFilters: Record<string, string | number> = {};
     filterOptions.forEach(option => {
       emptyFilters[option.filterKey] = '';
     });
+    emptyFilters.minSalary = '';
+    emptyFilters.maxSalary = '';
     setFilters(emptyFilters);
   };
+
+  useEffect(() => {
+    if (filters.minSalary !== '' || filters.maxSalary !== '') {
+      console.log(`Salary range updated: Min - ${filters.minSalary}, Max - ${filters.maxSalary}`);
+      // Additional logic can be added here if needed
+    }
+  }, [filters.minSalary, filters.maxSalary]);
 
   return (
     <div className="mb-6">
@@ -53,7 +62,7 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-textLight" size={20} />
         </div>
-        
+
         <button
           onClick={() => setShowFilters(!showFilters)}
           className="flex items-center gap-2 px-4 py-3 bg-white border border-border rounded-lg text-textLight hover:text-text focus:outline-none"
@@ -62,7 +71,7 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
           <span>Filters</span>
         </button>
       </div>
-      
+
       {showFilters && (
         <div className="mt-4 p-4 bg-white border border-border rounded-lg">
           <div className="flex flex-wrap gap-4">
@@ -96,8 +105,33 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
                 </select>
               </div>
             ))}
+            <div className="flex-1 min-w-[200px]">
+              <label htmlFor="min-salary" className="block text-sm font-medium text-textLight mb-1">
+                Min Salary
+              </label>
+              <input
+                type="number"
+                id="min-salary"
+                placeholder="Min Salary"
+                value={filters.minSalary}
+                onChange={(e) => handleFilterChange('minSalary', e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white"
+              />
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label htmlFor="max-salary" className="block text-sm font-medium text-textLight mb-1">
+                Max Salary
+              </label>
+              <input
+                type="number"
+                id="max-salary"
+                placeholder="Max Salary"
+                value={filters.maxSalary}
+                onChange={(e) => handleFilterChange('maxSalary', e.target.value)}
+                className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white"
+              />
+            </div>
           </div>
-          
           <div className="flex justify-end mt-4">
             <button
               onClick={clearFilters}

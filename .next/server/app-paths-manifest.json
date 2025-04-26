@@ -1,12 +1,6 @@
 {
   "/favicon.ico/route": "app/favicon.ico/route.js",
-  "/client_dashboard/createjob/page": "app/client_dashboard/createjob/page.js",
-  "/client_dashboard/settings/page": "app/client_dashboard/settings/page.js",
   "/client_dashboard/jobs/page": "app/client_dashboard/jobs/page.js",
-  "/client_dashboard/profile/page": "app/client_dashboard/profile/page.js",
-  "/chat/page": "app/chat/page.js",
-  "/client_dashboard/page": "app/client_dashboard/page.js",
-  "/freelancer_dashboard/payments/page": "app/freelancer_dashboard/payments/page.js",
-  "/freelancer_dashboard/client-profile/[id]/page": "app/freelancer_dashboard/client-profile/[id]/page.js",
-  "/freelancer_dashboard/applications/page": "app/freelancer_dashboard/applications/page.js"
+  "/page": "app/page.js",
+  "/auth/login/page": "app/auth/login/page.js"
 }
