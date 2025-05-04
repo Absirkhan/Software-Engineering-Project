@@ -2145,6 +2145,150 @@ initDatabase()
             res.json(results);
         });
 
+        // Check if user is authorized as a client
+        server.get('/api/auth/check-client-permission', (req, res) => {
+            // Check if user is logged in
+            if (!req.isAuthenticated()) {
+                return res.status(401).json({ error: 'Not authenticated' });
+            }
+            
+            // Check if user is a client
+            if (req.user.role !== 'client') {
+                return res.status(403).json({ error: 'Not authorized' });
+            }
+            
+            return res.status(200).json({ authorized: true });
+        });
+        
+        // Get applicant details by ID for a specific job
+        server.get('/api/jobs/:jobId/applicants/:applicantId', isAuthenticated, async (req, res) => {
+            try {
+                // Check if user is logged in
+                if (!req.user) {
+                    return res.status(401).json({ error: 'Not authenticated' });
+                }
+                
+                // Check if user is a client
+                if (req.user.role !== 'client') {
+                    return res.status(403).json({ error: 'Not authorized' });
+                }
+                
+                const { jobId, applicantId } = req.params;
+                
+                // Check if the job belongs to the client
+                const job = jobs.find(j => j.id === jobId);
+                if (!job || job.client.id !== req.user.id) {
+                    return res.status(403).json({ error: 'Not authorized to view this job' });
+                }
+                
+                // Find application for this job and applicant
+                const application = applications.find(app => 
+                    app.jobId === jobId && app.freelancer.id === applicantId
+                );
+                
+                if (!application) {
+                    return res.status(404).json({ error: 'Application not found' });
+                }
+                
+                // Get applicant details
+                const applicant = users.find(u => u.id === applicantId);
+                
+                if (!applicant) {
+                    return res.status(404).json({ error: 'Applicant not found' });
+                }
+                
+                // Get GitHub username from profile if it exists
+                const githubUsername = applicant.githubId ? 
+                    applicant.username : // Use GitHub username if they connected with GitHub
+                    (applicant.profile && applicant.profile.socialLinks && applicant.profile.socialLinks.github) ? 
+                        extractGitHubUsername(applicant.profile.socialLinks.github) : 
+                        null;
+                
+                // Combine applicant data with application data
+                const applicantData = {
+                    id: applicant.id,
+                    name: applicant.username,
+                    email: applicant.email,
+                    phone: applicant.profile?.contactInfo?.phone || '',
+                    location: applicant.profile?.contactInfo?.location || '',
+                    title: applicant.profile?.title || 'Job Seeker',
+                    skills: applicant.profile?.skills || [],
+                    experience: applicant.profile?.experience || [],
+                    education: applicant.profile?.education || [],
+                    githubUsername: githubUsername,
+                    profileImage: applicant.profile?.profilePicture || '',
+                    portfolio: applicant.profile?.portfolio || [],
+                    bio: applicant.profile?.bio || '',
+                    status: application.status,
+                    appliedDate: application.submittedAt,
+                    coverLetter: application.coverLetter,
+                    githubRepositories: applicant.githubRepositories || []
+                };
+                
+                res.json(applicantData);
+            } catch (error) {
+                console.error('Error fetching applicant details:', error);
+                res.status(500).json({ error: 'Server error' });
+            }
+        });
+        
+        // Helper function to extract GitHub username from a URL
+        function extractGitHubUsername(url) {
+            if (!url) return null;
+            try {
+                const githubUrlPattern = /github\.com\/([^\/]+)/;
+                const match = url.match(githubUrlPattern);
+                return match ? match[1] : null;
+            } catch (error) {
+                console.error("Error extracting GitHub username:", error);
+                return null;
+            }
+        }
+        
+        // Fetch GitHub repositories for a user
+        server.get('/api/github/:username/repos', async (req, res) => {
+            try {
+                const { username } = req.params;
+                
+                // Check if there's a valid GitHub username
+                if (!username) {
+                    return res.status(400).json({ error: 'GitHub username is required' });
+                }
+                
+                // Use GitHub API to fetch repositories
+                const githubApiUrl = `https://api.github.com/users/${username}/repos?sort=updated&per_page=10`;
+                
+                const response = await axios.get(githubApiUrl, {
+                    headers: {
+                        'Accept': 'application/vnd.github.v3+json',
+                        // Add GitHub token if you have one to increase rate limit
+                        // 'Authorization': `token ${process.env.GITHUB_TOKEN}`
+                    }
+                });
+                
+                if (response.status !== 200) {
+                    throw new Error(`GitHub API responded with status: ${response.status}`);
+                }
+                
+                const repos = response.data;
+                
+                // Filter and transform the response
+                const filteredRepos = repos.map(repo => ({
+                    name: repo.name,
+                    description: repo.description,
+                    html_url: repo.html_url,
+                    stargazers_count: repo.stargazers_count,
+                    language: repo.language,
+                    updated_at: repo.updated_at
+                }));
+                
+                res.json(filteredRepos);
+            } catch (error) {
+                console.error('Error fetching GitHub repositories:', error);
+                res.status(500).json({ error: 'Error fetching GitHub repositories' });
+            }
+        });
+
         // Add socket status check endpoint
         server.get('/api/socket-status', (req, res) => {
             const status = io ? {
@@ -2380,3 +2524,5 @@ setInterval(async () => {
         }
     }
 }, 60000); // Run every minute
+
+// Add these new routes for applicant details and GitHub repos

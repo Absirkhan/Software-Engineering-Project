@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import Navbar from "../../../../Components/navbar";
 import { useParams, useRouter } from "next/navigation";
+import Link from "next/link";
 import { ArrowLeft, Search, Calendar, User, FileText, CheckCircle, XCircle, File, Download, Award } from "lucide-react";
 import InterviewScheduleModal from "../../../../Components/InterviewScheduleModal";
 import clientRoutes from "@/app/Components/clientRoutes";
@@ -368,6 +369,12 @@ const JobApplicationsPage = () => {
                             <Calendar size={12} className="mr-1" />
                             {formatDate(application.submittedAt)}
                           </div>
+                          <Link 
+                            href={`/client_dashboard/jobs/applicants/${jobId}/${application.freelancer.id}`}
+                            className="text-secondary hover:text-secondary-dark transition-colors font-medium text-sm mt-2"
+                          >
+                            View Full Profile
+                          </Link>
                         </div>
                       ))}
                     </div>
