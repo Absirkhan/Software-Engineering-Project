@@ -65,10 +65,51 @@ const EditJobPage = () => {
     fetchJob();
   }, [jobId]);
 
+  // Input validation functions
+  const validateJobTitle = (value: string) => {
+    return value.length <= 100;
+  };
+
+  const validateTextArea = (value: string, maxLength: number) => {
+    return value.length <= maxLength;
+  };
+
+  const validateSalaryRange = (value: string) => {
+    return value.length <= 50;
+  };
+
+  const validateExperience = (value: string) => {
+    return value.length <= 50;
+  };
+
+  const validateSkills = (value: string) => {
+    return value.length <= 500;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
+
+    // Validate inputs
+    if (!validateJobTitle(jobTitle) ||
+        !validateTextArea(jobDescription, 5000) ||
+        !validateTextArea(qualifications, 1000) ||
+        !validateSkills(skills) ||
+        !validateExperience(experience) ||
+        !validateTextArea(benefits, 1000)) {
+      setError("Please check your inputs. Some fields may exceed the maximum allowed length.");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Check if deadline is in the future
+    const deadlineDate = new Date(applicationDeadline);
+    if (deadlineDate < new Date()) {
+      setError("Application deadline cannot be in the past");
+      setIsSubmitting(false);
+      return;
+    }
 
     try {
       const jobData = {
@@ -163,10 +204,15 @@ const EditJobPage = () => {
                     type="text"
                     id="jobTitle"
                     value={jobTitle}
-                    onChange={(e) => setJobTitle(e.target.value)}
+                    onChange={(e) => {
+                      if (validateJobTitle(e.target.value)) {
+                        setJobTitle(e.target.value);
+                      }
+                    }}
                     className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
                     placeholder="e.g., Senior Software Engineer"
                     required
+                    maxLength={100}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -201,10 +247,15 @@ const EditJobPage = () => {
                     type="text"
                     id="location"
                     value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    onChange={(e) => {
+                      if (e.target.value.length <= 100) {
+                        setLocation(e.target.value);
+                      }
+                    }}
                     className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
                     placeholder="e.g., Remote, New York, NY"
                     required
+                    maxLength={100}
                     disabled={isSubmitting}
                   />
                 </div>
@@ -217,10 +268,15 @@ const EditJobPage = () => {
                     type="text"
                     id="salaryRange"
                     value={salaryRange}
-                    onChange={(e) => setSalaryRange(e.target.value)}
+                    onChange={(e) => {
+                      if (validateSalaryRange(e.target.value)) {
+                        setSalaryRange(e.target.value);
+                      }
+                    }}
                     className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
                     placeholder="e.g., $80,000 - $120,000"
                     required
+                    maxLength={50}
                     disabled={isSubmitting}
                   />
                 </div>

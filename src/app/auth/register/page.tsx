@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GithubIcon, ArrowRight, UserIcon, KeyIcon, Mail as EnvelopeIcon, BriefcaseIcon } from "lucide-react";
@@ -9,15 +9,82 @@ const RegisterPage = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("freelancer"); // "freelancer" or "client"
+  const [role, setRole] = useState("freelancer");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState("");
+  const [validationErrors, setValidationErrors] = useState({
+    email: "",
+    username: "",
+    password: ""
+  });
   const router = useRouter();
+
+  // Email validation
+  const validateEmail = (email: string) => {
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      return "Please enter a valid email address";
+    }
+    return "";
+  };
+
+  // Username validation
+  const validateUsername = (username: string) => {
+    // Only alphanumeric characters and underscore, 3-20 chars
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(username)) {
+      return "Username must be 3-20 characters and contain only letters, numbers and underscores";
+    }
+    return "";
+  };
+
+  // Password validation
+  const validatePassword = (password: string) => {
+    // At least 8 chars, with at least one letter and one number
+    if (password.length < 8) {
+      return "Password must be at least 8 characters";
+    }
+    if (!/[A-Za-z]/.test(password)) {
+      return "Password must contain at least one letter";
+    }
+    if (!/[0-9]/.test(password)) {
+      return "Password must contain at least one number";
+    }
+    return "";
+  };
+
+  // Validate inputs when they change
+  useEffect(() => {
+    if (email) {
+      setValidationErrors(prev => ({ ...prev, email: validateEmail(email) }));
+    }
+    if (username) {
+      setValidationErrors(prev => ({ ...prev, username: validateUsername(username) }));
+    }
+    if (password) {
+      setValidationErrors(prev => ({ ...prev, password: validatePassword(password) }));
+    }
+  }, [email, username, password]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
+
+    // First validate all fields
+    const emailError = validateEmail(email);
+    const usernameError = validateUsername(username);
+    const passwordError = validatePassword(password);
+
+    if (emailError || usernameError || passwordError) {
+      setValidationErrors({
+        email: emailError,
+        username: usernameError,
+        password: passwordError
+      });
+      setIsSubmitting(false);
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords don't match");
@@ -31,21 +98,19 @@ const RegisterPage = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ email, username, password, role }),
+        body: JSON.stringify({
+          email,
+          username,
+          password,
+          role,
+        }),
       });
 
       if (response.ok) {
-        const data = await response.json();
-        
-        // Redirect based on user role
-        if (data.user.role === 'client') {
-          router.push("/client_dashboard");
-        } else {
-          router.push("/freelancer_dashboard");
-        }
+        router.push(role === "freelancer" ? "/freelancer_dashboard" : "/client_dashboard");
       } else {
-        const errorData = await response.json().catch(() => null);
-        setError(errorData?.error || "Registration failed. Please try again.");
+        const data = await response.json();
+        setError(data.error || "Registration failed. Please try again.");
       }
     } catch (error) {
       setError("An unexpected error occurred. Please try again.");
@@ -95,12 +160,16 @@ const RegisterPage = () => {
                   id="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                  className={`w-full pl-10 pr-4 py-2.5 border ${validationErrors.email ? 'border-red-500' : 'border-border'} rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none`}
                   placeholder="Your email"
                   required
                   disabled={isSubmitting}
+                  maxLength={100}
                 />
               </div>
+              {validationErrors.email && (
+                <p className="mt-1 text-xs text-red-500">{validationErrors.email}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -114,12 +183,18 @@ const RegisterPage = () => {
                   id="username"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                  className={`w-full pl-10 pr-4 py-2.5 border ${validationErrors.username ? 'border-red-500' : 'border-border'} rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none`}
                   placeholder="Choose a username"
                   required
                   disabled={isSubmitting}
+                  maxLength={20}
+                  pattern="[a-zA-Z0-9_]{3,20}"
+                  title="Username must be 3-20 characters and contain only letters, numbers and underscores"
                 />
               </div>
+              {validationErrors.username && (
+                <p className="mt-1 text-xs text-red-500">{validationErrors.username}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -133,13 +208,16 @@ const RegisterPage = () => {
                   id="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
+                  className={`w-full pl-10 pr-4 py-2.5 border ${validationErrors.password ? 'border-red-500' : 'border-border'} rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none`}
                   placeholder="Create a password"
                   required
-                  minLength={6}
+                  minLength={8}
                   disabled={isSubmitting}
                 />
               </div>
+              {validationErrors.password && (
+                <p className="mt-1 text-xs text-red-500">{validationErrors.password}</p>
+              )}
             </div>
 
             <div className="mb-4">
@@ -156,6 +234,7 @@ const RegisterPage = () => {
                   className="w-full pl-10 pr-4 py-2.5 border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
                   placeholder="Confirm your password"
                   required
+                  minLength={8}
                   disabled={isSubmitting}
                 />
               </div>

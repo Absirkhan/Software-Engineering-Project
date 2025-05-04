@@ -156,7 +156,7 @@ export default function Navbar({ initialRole = 'Client', items }: NavbarProps) {
           <Link href="/" className="text-primary text-xl font-bold">
             <span className="flex items-center">
               <Briefcase className="mr-2 text-primary" size={20} /> 
-              WorkConnect<span className="text-accent font-bold">Pro</span>
+              Intelli<span className="text-accent font-bold">Hire</span>
             </span>
           </Link>
               </div>

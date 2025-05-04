@@ -1763,7 +1763,7 @@ initDatabase()
             
             // Extract text from PDF
             const pdfData = await pdfParse(uploadedFile.data);
-            console.log('PDF text extraction successful.');
+            console.log(pdfData.text);
             
             // Generate different prompts based on analysis type
             let prompt = "";

@@ -21,6 +21,16 @@
       "static/chunks/main-app.js",
       "static/chunks/app/page.js"
     ],
+    "/freelancer_dashboard/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/layout.js"
+    ],
+    "/freelancer_dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/page.js"
+    ],
     "/auth/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -36,10 +46,65 @@
       "static/chunks/main-app.js",
       "static/chunks/app/client_dashboard/jobs/page.js"
     ],
+    "/client_dashboard/settings/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client_dashboard/settings/page.js"
+    ],
+    "/client_dashboard/profile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client_dashboard/profile/page.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
+    ],
+    "/client_dashboard/jobs/[id]/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/client_dashboard/jobs/[id]/applications/page.js"
+    ],
+    "/freelancer_dashboard/profile/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/profile/page.js"
+    ],
+    "/freelancer_dashboard/settings/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/settings/page.js"
+    ],
+    "/chat/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/chat/page.js"
+    ],
     "/client_dashboard/createjob/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/client_dashboard/createjob/page.js"
+    ],
+    "/freelancer_dashboard/searchjob/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/searchjob/page.js"
+    ],
+    "/freelancer_dashboard/saved_jobs/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/saved_jobs/page.js"
+    ],
+    "/freelancer_dashboard/applications/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/applications/page.js"
+    ],
+    "/freelancer_dashboard/client-profile/[id]/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/freelancer_dashboard/client-profile/[id]/page.js"
     ]
   }
 }

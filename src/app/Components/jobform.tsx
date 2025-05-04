@@ -20,11 +20,47 @@ const JobForm: React.FC = () => {
   const [error, setError] = useState("");
   const [timerDuration, setTimerDuration] = useState(3600); // Default timer in seconds (1 hour)
 
+  // Validate job title - alphanumeric with basic punctuation
+  const validateJobTitle = (value: string) => {
+    return value.length <= 100;
+  };
+
+  // Validate description and other text areas
+  const validateTextArea = (value: string, maxLength: number) => {
+    return value.length <= maxLength;
+  };
+
+  // Validate salary format (e.g., $50,000 - $70,000)
+  const validateSalaryRange = (value: string) => {
+    // Allowing various formats of salary ranges
+    return value.length <= 50;
+  };
+
+  // Validate experience (e.g., 2+ years, Entry level, etc.)
+  const validateExperience = (value: string) => {
+    return value.length <= 50;
+  };
+
+  // Validate skills
   const handleAddSkill = () => {
     if (newSkill.trim() && !skills.includes(newSkill.trim())) {
+      // Limit number of skills
+      if (skills.length >= 20) {
+        return;
+      }
+      // Limit skill name length
+      if (newSkill.length > 30) {
+        return;
+      }
       setSkills([...skills, newSkill.trim()]);
       setNewSkill("");
     }
+  };
+
+  // Validate timer duration (in seconds)
+  const validateTimerDuration = (value: number) => {
+    // Minimum 1 hour (3600 seconds), maximum 90 days (7776000 seconds)
+    return value >= 60 && value <= 7776000;
   };
 
   const handleRemoveSkill = (skill: string) => {
@@ -100,10 +136,15 @@ const JobForm: React.FC = () => {
                 type="text"
                 id="jobTitle"
                 value={jobTitle}
-                onChange={(e) => setJobTitle(e.target.value)}
+                onChange={(e) => {
+                  if (validateJobTitle(e.target.value)) {
+                    setJobTitle(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., Senior Software Engineer"
                 required
+                maxLength={100}
                 disabled={isSubmitting}
               />
             </div>
@@ -138,10 +179,15 @@ const JobForm: React.FC = () => {
                 type="text"
                 id="location"
                 value={location}
-                onChange={(e) => setLocation(e.target.value)}
+                onChange={(e) => {
+                  if (e.target.value.length <= 100) {
+                    setLocation(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., Remote, New York, NY"
                 required
+                maxLength={100}
                 disabled={isSubmitting}
               />
             </div>
@@ -154,10 +200,15 @@ const JobForm: React.FC = () => {
                 type="text"
                 id="salaryRange"
                 value={salaryRange}
-                onChange={(e) => setSalaryRange(e.target.value)}
+                onChange={(e) => {
+                  if (validateSalaryRange(e.target.value)) {
+                    setSalaryRange(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., $80,000 - $120,000"
                 required
+                maxLength={50}
                 disabled={isSubmitting}
               />
             </div>
@@ -170,11 +221,16 @@ const JobForm: React.FC = () => {
             <textarea
               id="jobDescription"
               value={jobDescription}
-              onChange={(e) => setJobDescription(e.target.value)}
+              onChange={(e) => {
+                if (validateTextArea(e.target.value, 5000)) {
+                  setJobDescription(e.target.value);
+                }
+              }}
               className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
               placeholder="Describe the job role and responsibilities"
               rows={3}
               required
+              maxLength={5000}
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -187,11 +243,16 @@ const JobForm: React.FC = () => {
               <textarea
                 id="qualifications"
                 value={qualifications}
-                onChange={(e) => setQualifications(e.target.value)}
+                onChange={(e) => {
+                  if (validateTextArea(e.target.value, 1000)) {
+                    setQualifications(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
                 placeholder="Required education, certifications, etc."
                 rows={2}
                 required
+                maxLength={1000}
                 disabled={isSubmitting}
               ></textarea>
             </div>
@@ -252,10 +313,15 @@ const JobForm: React.FC = () => {
                 type="text"
                 id="experience"
                 value={experience}
-                onChange={(e) => setExperience(e.target.value)}
+                onChange={(e) => {
+                  if (validateExperience(e.target.value)) {
+                    setExperience(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 placeholder="e.g., 3+ years"
                 required
+                maxLength={50}
                 disabled={isSubmitting}
               />
             </div>
@@ -268,9 +334,19 @@ const JobForm: React.FC = () => {
                 type="date"
                 id="applicationDeadline"
                 value={applicationDeadline}
-                onChange={(e) => setApplicationDeadline(e.target.value)}
+                onChange={(e) => {
+                  // Only allow future dates
+                  const selectedDate = new Date(e.target.value);
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  
+                  if (selectedDate >= today) {
+                    setApplicationDeadline(e.target.value);
+                  }
+                }}
                 className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
                 required
+                min={new Date().toISOString().split('T')[0]} // Set min to today
                 disabled={isSubmitting}
               />
             </div>
@@ -283,11 +359,16 @@ const JobForm: React.FC = () => {
             <textarea
               id="benefits"
               value={benefits}
-              onChange={(e) => setBenefits(e.target.value)}
+              onChange={(e) => {
+                if (validateTextArea(e.target.value, 1000)) {
+                  setBenefits(e.target.value);
+                }
+              }}
               className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none bg-white text-text"
               placeholder="e.g., Health insurance, 401k, remote work"
               rows={2}
               required
+              maxLength={1000}
               disabled={isSubmitting}
             ></textarea>
           </div>
@@ -300,12 +381,22 @@ const JobForm: React.FC = () => {
               type="number"
               id="timerDuration"
               value={timerDuration}
-              onChange={(e) => setTimerDuration(Number(e.target.value))}
+              onChange={(e) => {
+                const value = Number(e.target.value);
+                if (validateTimerDuration(value)) {
+                  setTimerDuration(value);
+                }
+              }}
               className="w-full px-3 py-2.5 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white text-text"
               placeholder="e.g., 3600 for 1 hour"
               required
+              min={60}
+              max={7776000}
               disabled={isSubmitting}
             />
+            <small className="text-xs text-textLight mt-1 block">
+              Minimum 1 minute (60 seconds), maximum 90 days (7776000 seconds)
+            </small>
           </div>
           
           <div className="p-4 bg-gray-50 rounded-lg border border-border flex items-center">

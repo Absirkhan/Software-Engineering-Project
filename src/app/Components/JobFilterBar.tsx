@@ -25,7 +25,36 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
 }) => {
   const [showFilters, setShowFilters] = useState(false);
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    // Limit search term length to prevent excessively long queries
+    if (e.target.value.length <= 100) {
+      setSearchTerm(e.target.value);
+    }
+  };
+
   const handleFilterChange = (key: string, value: string | number) => {
+    // Validation for salary inputs
+    if (key === 'minSalary' || key === 'maxSalary') {
+      // Ensure input is a non-negative number
+      const numValue = Number(value);
+      if (value !== '' && (isNaN(numValue) || numValue < 0)) {
+        return; // Reject negative values
+      }
+      
+      // Additional validation for min/max relationship
+      if (key === 'minSalary' && filters.maxSalary !== '' && Number(value) > Number(filters.maxSalary) && Number(value) !== 0) {
+        return; // Min salary shouldn't be greater than max salary
+      }
+      if (key === 'maxSalary' && filters.minSalary !== '' && Number(value) < Number(filters.minSalary) && Number(value) !== 0) {
+        return; // Max salary shouldn't be less than min salary
+      }
+
+      // Limit to reasonable salary range (up to $10M)
+      if (numValue > 10000000) {
+        return;
+      }
+    }
+
     setFilters(prev => ({
       ...prev,
       [key]: value
@@ -57,7 +86,7 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
             type="text"
             placeholder="Search jobs by title or description..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={handleSearchChange}
             className="w-full pl-10 pr-4 py-3 rounded-lg border border-border text-sm text-text bg-white focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent transition-all shadow-sm"
           />
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-textLight" size={20} />
@@ -115,6 +144,8 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
                 placeholder="Min Salary"
                 value={filters.minSalary}
                 onChange={(e) => handleFilterChange('minSalary', e.target.value)}
+                min="0"
+                max="10000000"
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white"
               />
             </div>
@@ -128,6 +159,8 @@ const JobFilterBar: React.FC<JobFilterBarProps> = ({
                 placeholder="Max Salary"
                 value={filters.maxSalary}
                 onChange={(e) => handleFilterChange('maxSalary', e.target.value)}
+                min="0"
+                max="10000000"
                 className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none bg-white"
               />
             </div>

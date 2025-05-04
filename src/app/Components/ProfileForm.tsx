@@ -69,28 +69,49 @@ const ProfileForm: React.FC = () => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
+    // Validation based on field type
+    if (name === "contactInfo.phone") {
+      // Allow only numbers, spaces, (), +, and -
+      if (!/^[0-9()+\- ]*$/.test(value)) {
+        return;
+      }
+      // Limit phone number length
+      if (value.length > 20) {
+        return;
+      }
+    } 
+    else if (name === "contactInfo.website") {
+      // Limit website URL length
+      if (value.length > 100) {
+        return;
+      }
+    }
+    else if (name === "fullName") {
+      // Prevent numbers in name fields for freelancers
+      if (userRole === 'freelancer' && /\d/.test(value)) {
+        return;
+      }
+      // Limit name length
+      if (value.length > 100) {
+        return;
+      }
+    }
+    else if (name === "bio" || name === "company.description") {
+      // Limit bio/description length
+      if (value.length > 1000) {
+        return;
+      }
+    }
+    
     if (name.includes('.')) {
       const [parent, child] = name.split('.');
-      setProfile(prev => {
-        if (parent === 'contactInfo') {
-          return {
+      setProfile(prev => ({
         ...prev,
-        contactInfo: {
-          ...prev.contactInfo,
+        [parent]: {
+          ...(prev[parent as keyof typeof prev] as Record<string, any>),
           [child]: value
         }
-          };
-        } else if (parent === 'company') {
-          return {
-        ...prev,
-        company: {
-          ...prev.company,
-          [child]: value
-        }
-          };
-        }
-        return prev;
-      });
+      }));
     } else {
       setProfile(prev => ({
         ...prev,
@@ -101,6 +122,14 @@ const ProfileForm: React.FC = () => {
 
   const handleAddSkill = () => {
     if (newSkill.trim() && !profile.skills.includes(newSkill.trim())) {
+      // Limit number of skills to 20
+      if (profile.skills.length >= 20) {
+        return;
+      }
+      // Limit skill name length
+      if (newSkill.length > 30) {
+        return;
+      }
       setProfile(prev => ({
         ...prev,
         skills: [...prev.skills, newSkill.trim()]
@@ -118,6 +147,14 @@ const ProfileForm: React.FC = () => {
 
   const handleAddPerk = () => {
     if (newPerk.trim() && !profile.company.perks.includes(newPerk.trim())) {
+      // Limit number of perks to 10
+      if (profile.company.perks.length >= 10) {
+        return;
+      }
+      // Limit perk description length
+      if (newPerk.length > 50) {
+        return;
+      }
       setProfile(prev => ({
         ...prev,
         company: {
@@ -221,6 +258,8 @@ const ProfileForm: React.FC = () => {
               onChange={handleInputChange}
               className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
               placeholder={userRole === 'client' ? "Enter your company name" : "Enter your full name"}
+              maxLength={100}
+              required
             />
           </div>
           
@@ -236,6 +275,7 @@ const ProfileForm: React.FC = () => {
               className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
               placeholder={userRole === 'client' ? "Describe your company, mission, and values..." : "Tell us about yourself, your skills and experience..."}
               rows={3}
+              maxLength={1000}
             ></textarea>
           </div>
 
@@ -278,6 +318,7 @@ const ProfileForm: React.FC = () => {
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
                   placeholder="Describe your company culture, mission and values in detail..."
                   rows={5}
+                  maxLength={1000}
                 ></textarea>
               </div>
 
@@ -299,6 +340,7 @@ const ProfileForm: React.FC = () => {
                         handleAddPerk();
                       }
                     }}
+                    maxLength={50}
                   />
                   <button 
                     type="button"
@@ -351,6 +393,7 @@ const ProfileForm: React.FC = () => {
                       handleAddSkill();
                     }
                   }}
+                  maxLength={30}
                 />
                 <button 
                   type="button"
@@ -398,6 +441,7 @@ const ProfileForm: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
                   placeholder="Your phone number"
+                  maxLength={20}
                 />
               </div>
               
@@ -428,6 +472,7 @@ const ProfileForm: React.FC = () => {
                   onChange={handleInputChange}
                   className="w-full px-3 py-2 text-sm border border-border rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none"
                   placeholder="https://yourwebsite.com"
+                  maxLength={100}
                 />
               </div>
             </div>

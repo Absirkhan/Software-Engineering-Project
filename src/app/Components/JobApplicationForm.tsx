@@ -28,13 +28,33 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ jobId, onSucces
     }
   };
 
+  const validateCoverLetter = (text: string) => {
+    // Cover letter should be between 100 and 5000 characters
+    if (text.length < 100) {
+      setError("Cover letter should be at least 100 characters");
+      return false;
+    }
+    if (text.length > 5000) {
+      setError("Cover letter should not exceed 5000 characters");
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
     setError("");
 
+    // Validate cover letter
+    if (!validateCoverLetter(coverLetter)) {
+      setIsSubmitting(false);
+      return;
+    }
+
     try {
       await handleApplyClick(); // Increment apply clicks
+      
       // Validate file uploads
       if (!genericResumeFile) {
         setError("Generic resume is required");
@@ -74,6 +94,7 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ jobId, onSucces
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>, setFile: React.Dispatch<React.SetStateAction<File | null>>) => {
+    setError("");
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       
@@ -90,7 +111,6 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ jobId, onSucces
       }
       
       setFile(file);
-      setError("");
     }
   };
 
@@ -136,8 +156,13 @@ const JobApplicationForm: React.FC<JobApplicationFormProps> = ({ jobId, onSucces
             placeholder="Write your cover letter here..."
             rows={8}
             required
+            minLength={100}
+            maxLength={5000}
             disabled={isSubmitting}
           ></textarea>
+          <small className="text-xs text-textLight mt-1 block">
+            {coverLetter.length}/5000 characters (minimum 100)
+          </small>
         </div>
         
         {/* Generic Resume Upload (Required) */}

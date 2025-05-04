@@ -25,11 +25,24 @@ const RatingModal: React.FC<RatingModalProps> = ({
 
   if (!isOpen) return null;
 
+  const validateComment = (text: string) => {
+    // Comment is optional, but if provided should not exceed 1000 chars
+    if (text && text.length > 1000) {
+      setError('Review should not exceed 1000 characters');
+      return false;
+    }
+    return true;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (stars === 0) {
       setError('Please select a rating before submitting');
+      return;
+    }
+
+    if (!validateComment(comment)) {
       return;
     }
 
@@ -107,8 +120,12 @@ const RatingModal: React.FC<RatingModalProps> = ({
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-accent focus:border-accent focus:outline-none resize-none"
               placeholder="Share your experience working with this client..."
               rows={4}
+              maxLength={1000}
               disabled={isSubmitting}
             ></textarea>
+            <small className="text-xs text-textLight mt-1 block">
+              {comment.length}/1000 characters
+            </small>
           </div>
           
           <div className="flex justify-end gap-3">
